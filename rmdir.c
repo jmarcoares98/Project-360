@@ -117,7 +117,7 @@ int rm_child(MINODE* parent, char* name)
 				// deallocate the data block
 				bdalloc(parent->dev, ip->i_block[i]);
 
-				// compact parent’s i_block[] array to eliminate the deleted entry if it’s
+				// compact parentï¿½s i_block[] array to eliminate the deleted entry if itï¿½s
 				// between nonzero entries
 				ip->i_block[i] = 0;
 				ip->i_nlocks--;
@@ -139,12 +139,11 @@ int rm_child(MINODE* parent, char* name)
 			dp = (DIR*)cp;
 		}
 	}
-<<<<<<< HEAD
-
 	// Write the parent's data block back to disk
 	// mark parent minode DIRTY for write - back
 	put_block(parent->dev, ip->i_block[i], buf);
 }
-=======
+
 }
->>>>>>> d6b3032f3806be88eacee838b5eb1473b1b4e8d0
+}
+
