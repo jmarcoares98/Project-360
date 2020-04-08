@@ -94,20 +94,57 @@ int rmdir(char* pathname)
 
 int rm_child(MINODE* parent, char* name)
 {
-	INODE* ip;
-	ip = &parent->INODE;
-	for (int i = 0; i < 12; i++) {
-		// Search parent INODE's data block(s) for the entry of name
-		get_block(parent->dev, ip->i_block, buf);
-		// Erase name entry from parent directory
-		// (1). if LAST entry in block
+	INODE* ip = &parent->INODE;
+	char* cp = buf, * lastcp = buf;
+	DIR* dp = (DIR*)buf, * lastdp = (DIR*)buf;
 
-		// (2). if (first entry in a data block)
-
-		// (3). if in the middle of a block
-
-		// Write the parent's data block back to disk;
-		// mark parent minode DIRTY for write - back
-		put_block(parent->dev, ip->i_block[i], buf);
+	// find last entry block
+	while ((lastcp + lastdp->rec_len) < buf + BLKSIZE) {
+		lastcp += dp->rec_len;
+		lastdp = (DIR*)lastcp;
 	}
+
+	// Search parent INODE's data block(s) for the entry of name
+	for (int i = 0; i < 12; i++) {
+		get_block(parent->dev, ip->i_block[i], buf);
+		cp = buf;
+		dp = (DIR*)buf;
+
+		while (cp < buf + BLKSIZE) {
+			// Delete name entry from parent directory by
+			// if (first and only entry in a data block){
+			if (dp->rec_len == BLKSIZE) {
+				// deallocate the data block
+				bdalloc(parent->dev, ip->i_block[i]);
+
+				// compact parent’s i_block[] array to eliminate the deleted entry if it’s
+				// between nonzero entries
+				ip->i_block[i] = 0;
+				ip->i_nlocks--;
+			}
+
+			// else if LAST entry in block
+			else if (cp == lastcp) {
+				lastdp->rec_len += dp->rec_len;
+			}
+
+			// else: entry is first but not the only entry or in the middle of a block
+			else {
+				dp = (DIR*)lastcp;
+				last->rec_len += dp->rec_len;
+				memcpy(cp, cp+dp->rec_len, (buf+BLKSIZE) - (cp+dp->rec_len))
+			}
+
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
+		}
+	}
+<<<<<<< HEAD
+
+	// Write the parent's data block back to disk
+	// mark parent minode DIRTY for write - back
+	put_block(parent->dev, ip->i_block[i], buf);
 }
+=======
+}
+>>>>>>> d6b3032f3806be88eacee838b5eb1473b1b4e8d0
