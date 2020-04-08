@@ -143,7 +143,3 @@ int rm_child(MINODE* parent, char* name)
 	// mark parent minode DIRTY for write - back
 	put_block(parent->dev, ip->i_block[i], buf);
 }
-
-}
-}
-
