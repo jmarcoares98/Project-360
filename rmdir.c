@@ -120,7 +120,7 @@ int rm_child(MINODE* parent, char* name)
 				// compact parent�s i_block[] array to eliminate the deleted entry if it�s
 				// between nonzero entries
 				ip->i_block[i] = 0;
-				ip->i_nlocks--;
+				ip->i_blocks--;
 			}
 
 			// else if LAST entry in block
@@ -131,8 +131,8 @@ int rm_child(MINODE* parent, char* name)
 			// else: entry is first but not the only entry or in the middle of a block
 			else {
 				dp = (DIR*)lastcp;
-				last->rec_len += dp->rec_len;
-				memcpy(cp, cp+dp->rec_len, (buf+BLKSIZE) - (cp+dp->rec_len))
+				lastdp->rec_len += dp->rec_len;
+				memcpy(cp, cp + dp->rec_len, (buf + BLKSIZE) - (cp + dp->rec_len));
 			}
 
 			cp += dp->rec_len;
