@@ -63,7 +63,7 @@ int rmdir(char* pathname)
 		bdealloc(mip->dev, mip->INODE.i_block[i]);
 	}
 	idalloc(mip->dev, mip->ino);
-	iput(mip); // (which clears mip->refCount = 0);
+	iput(mip->dev,mip); // (which clears mip->refCount = 0);
 
 	strcpy(path, pathname);
 	strcpy(parent, dirname(pathname));
