@@ -61,7 +61,7 @@ int unlink(char* filename)
 	child = basename(filename);
 	pino = getino(dev,parent);
 	pmip = iget(dev, pino);
-	rm_child(pmip, ino, child);
+	rm_child(pmip, child);
 	pmip->dirty = 1;
 	iput(dev,pmip);
 	// (4). decrement INODE's link count by 1
