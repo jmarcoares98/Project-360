@@ -32,6 +32,9 @@ char buf[BLKSIZE];
 #include "util.c"
 #include "cd_ls_pwd.c"
 #include "mkdir_creat.c"
+#include "rmdir.c"
+#include "link_unlink.c"
+#include "symlink.c"
 
 int init()
 {
@@ -134,6 +137,14 @@ int main(int argc, char* argv[])
 			make_dir(pathname);
 		else if (strcmp(cmd, "creat") == 0)
 			creat_file(pathname);
+		else if (strcmp(cmd, "rmdir") == 0)
+			rmdir(pathname);
+		else if (strcmp(cmd, "link") == 0)
+			link(pathname);
+		else if (strcmp(cmd, "unlink") == 0)
+			unlink(pathname);
+		else if (strcmp(cmd, "symlink") == 0)
+			symlink(pathname);
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
 	}
