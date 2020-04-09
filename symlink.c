@@ -1,12 +1,12 @@
 // creates a symbolic link from newFileName to oldFileName
 // symlink /a/b/c /x/y/z
-void symlink(char *pathname)
+void symlink(char *oldName, char *newName)
 {
+	int ino, new_ino;
+	MINODE *mip, *new_mip;
 	// ASSUME: oldName has <= 60 chars including the ending NULL byte
 	// (1).verify oldNAME exists(either a DIR or a REG file)
-	int ino;
-	MINODE *mip;
-	ino = getino(filename);
+	ino = getino(oldName);
 	if (ino == 0)
 		return -1;
 	mip = iget(dev, ino);
@@ -17,23 +17,27 @@ void symlink(char *pathname)
 		}
 	}
 	// check newName not yet exist
-
+	
 	// (2).creat a FILE / x / y / z
 	creat_file(newName);
 	// (3).change / x / y / z's type to LNK (0120000)=(1010.....)=0xA...
-
+	new_ino = getino(newName);
+	new_mip = iget(dev, new_ino);
+	new_mip->INODE.i_mode = 0120000;
 	// (4).write the string oldNAME into the i_block[], which has room for 60 chars.
-
-	// (INODE has 24 unused bytes after i_block[].So, up to 84 bytes for oldNAME)
-
+	// (INODE has 24 unused bytes after i_block[]. So, up to 84 bytes for oldNAME)
+	new_mip->INODE.i_block[] = oldName;
 	// set / x / y / z file size = number of chars in oldName
-
-	// (5).write the INODE of / x / y / z back to disk.
-
+	new_mip->INODE.i_size = strlen(oldName);
+	// (5).mark newFile parent minode dirty
+	new_mip->dirty = 1;
+	// (6).swrite the INODE of / x / y / z back to disk.
+	iput(new_mip);
+	iput(mip);
 }
 
 // reads the target fileName of a symbolic file and returns the contents
-void readlink(char *pathname)
+int readlink(char *pathname, char buf)
 {
 	int ino;
 	MINODE* mip;
@@ -45,4 +49,5 @@ void readlink(char *pathname)
 	// (3).copy its string contents in INODE.i_block[].
 
 	// (4).return file size
+	return;
 }
