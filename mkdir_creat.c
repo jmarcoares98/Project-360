@@ -8,7 +8,7 @@ int set_bit(char* buf, int bit)
 	return buf[bit / 8] |= (1 << (bit % 8)); // in Chapter 11.3.1
 }
 
-int clearbit(char* buf, int bit) 
+int clr_bit(char* buf, int bit) 
 {
 	return buf[bit / 8] &= ~(1 << (bit % 8));
 }
