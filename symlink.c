@@ -44,10 +44,15 @@ int readlink(char *pathname, char buf)
 	// (1).get INODE of pathname into a minode[].
 	ino = getino(dev, pathname);
 	mip = iget(dev, ino);
-	// (2).check INODE is a symbolic Link file.
-
-	// (3).copy its string contents in INODE.i_block[].
-
+	// (2).check INODE is a symbolic LNK file.
+	if (mip->INODE.i_mode != 0120000) {
+		printf("ERROR %s INODE is not symbolic link file", pathname);
+		return -1;
+	}
+	// (3).copy filename from INODE.i_block[] into buffer
+	strcpy(buf, mip->INODE.i_block[]);
+	// (3).return its string contents in INODE.i_block[].
+	
 	// (4).return file size
 	return;
 }
