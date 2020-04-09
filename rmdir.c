@@ -60,7 +60,7 @@ int rmdir(char* pathname)
 	for (int i = 0; i < 12; i++) {
 		if (ip->i_block[i] == 0)
 			continue;
-		bdealloc(mip->dev, mip->INODE.i_block[i]);
+		bdalloc(mip->dev, mip->INODE.i_block[i]);
 	}
 	idalloc(mip->dev, mip->ino);
 	iput(mip->dev,mip); // (which clears mip->refCount = 0);
