@@ -6,7 +6,7 @@ void symlink(char *oldName, char *newName)
 	MINODE *mip, *new_mip;
 	// ASSUME: oldName has <= 60 chars including the ending NULL byte
 	// (1).verify oldNAME exists(either a DIR or a REG file)
-	ino = getino(oldName);
+	ino = getino(dev,oldName);
 	if (ino == 0)
 		return -1;
 	mip = iget(dev, ino);
@@ -21,7 +21,7 @@ void symlink(char *oldName, char *newName)
 	// (2).creat a FILE / x / y / z
 	creat_file(newName);
 	// (3).change / x / y / z's type to LNK (0120000)=(1010.....)=0xA...
-	new_ino = getino(newName);
+	new_ino = getino(dev,newName);
 	new_mip = iget(dev, new_ino);
 	new_mip->INODE.i_mode = 0120000;
 	// (4).write the string oldNAME into the i_block[], which has room for 60 chars.
@@ -32,8 +32,8 @@ void symlink(char *oldName, char *newName)
 	// (5).mark newFile parent minode dirty
 	new_mip->dirty = 1;
 	// (6).swrite the INODE of / x / y / z back to disk.
-	iput(new_mip);
-	iput(mip);
+	iput(dev,new_mip);
+	iput(dev,mip);
 }
 
 // reads the target fileName of a symbolic file and returns the contents
