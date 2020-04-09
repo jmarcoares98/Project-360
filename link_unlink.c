@@ -1,10 +1,11 @@
 // creates a file newFileName which has the SAME inode (number) as that of oldFileName
 int link(char* old_file, char* new_file)
 {
-	int oino;
-	MINODE *omip;
+	int oino, pino;
+	char *child, *parent;
+	MINODE *omip, *pmip;
 	// (1). get the INODE of /a/b/c into memory: mip->minode[ ]
-	oino = getino(old_file);
+	oino = getino(dev,old_file);
 	if (oino == 0)
 	{
 		return -1;
@@ -16,11 +17,11 @@ int link(char* old_file, char* new_file)
 		return -1;
 	}
 	// (3). creat new_file with the same inode number of old_file
-	if (getino(new_file) == 0)
+	if (getino(dev,new_file) == 0)
 	{
 		parent = dirname(new_file);
 		child = basename(new_file);
-		pino = getino(parent);
+		pino = getino(dev,parent);
 		pmip = iget(dev, pino);
 		// create entry in new parent DIR with same inode number of old_file
 		enter_name(pmip, oino, child);
@@ -33,17 +34,18 @@ int link(char* old_file, char* new_file)
 	omip->INODE.i_links_count++;
 	omip->dirty = 1;
 	// (6). write INODE back to disk      
-	iput(omip);
-	iput(pmip);
+	iput(dev,omip);
+	iput(dev,pmip);
 }
 
 // unlinks a file
 int unlink(char* filename)
 {
-	int ino;
-	MINODE *mip;
+	int ino, pino;
+	char *child, *parent;
+	MINODE *mip, *pmip;
 	// (1). get pathname's INODE into memory
-	ino = getino(filename);
+	ino = getino(dev, filename);
 	if (ino == 0)
 	{
 		return -1;
@@ -57,11 +59,11 @@ int unlink(char* filename)
 	// (3). remove name entry from parent DIR's data block
 	parent = dirname(filename);
 	child = basename(filename);
-	pino = getino(parent);
+	pino = getino(dev,parent);
 	pmip = iget(dev, pino);
 	rm_child(pmip, ino, child);
 	pmip->dirty = 1;
-	iput(pmip);
+	iput(dev,pmip);
 	// (4). decrement INODE's link count by 1
 	mip->INODE.i_links_count--;
 	// (5). if i_links_count == 0 ==> rm pathname by deallocating its data blocks
@@ -75,6 +77,5 @@ int unlink(char* filename)
 		mip->dirty = 1;
 		idealloc(dev, mip->ino);
 	}
-	iput(mip);
+	iput(dev, mip);
 }
-
