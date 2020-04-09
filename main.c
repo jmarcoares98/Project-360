@@ -73,7 +73,7 @@ char* disk = "diskimage";
 int main(int argc, char* argv[])
 {
 	int ino;
-	char line[128], cmd[32], pathname[128];
+	char line[128], cmd[32], pathname[128], pathname2[128];
 
 	printf("checking EXT2 FS ....");
 	if ((fd = open(disk, O_RDWR)) < 0) {
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 			continue;
 		pathname[0] = 0;
 
-		sscanf(line, "%s %s", cmd, pathname);
+		sscanf(line, "%s %s %s", cmd, pathname, pathname2);
 
 		if (strcmp(cmd, "ls") == 0)
 			ls(pathname);
@@ -140,11 +140,11 @@ int main(int argc, char* argv[])
 		else if (strcmp(cmd, "rmdir") == 0)
 			rmdir(pathname);
 		else if (strcmp(cmd, "link") == 0)
-			link(pathname);
+			link(pathname, pathname2);
 		else if (strcmp(cmd, "unlink") == 0)
 			unlink(pathname);
 		else if (strcmp(cmd, "symlink") == 0)
-			symlink(pathname);
+			symlink(pathname, pathname2);
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
 	}
