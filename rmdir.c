@@ -50,14 +50,14 @@ int rmdir(char* pathname)
 		return -1;
 	}
 
-	if (ip.i_links_count > 2) {
+	if (ip->i_links_count > 2) {
 		iput(mip->dev, mip);
 		return -1;
 	}
 
 	// ASSUME passed the above checks.
 	// get parent DIR's ino and Minode (pointed by pip);
-	for (i = 0; i < 12; i++) {
+	for (int i = 0; i < 12; i++) {
 		if (ip->i_block[i] == 0)
 			continue;
 		bdealloc(mip->dev, mip->INODE.i_block[i]);
