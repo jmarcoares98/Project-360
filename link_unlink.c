@@ -1,4 +1,4 @@
-int link(MINODE* old_file, MINODE* new_file)
+int link(char* old_file, char* new_file)
 {
     oino = getino(old_file);
     
@@ -63,14 +63,14 @@ int unlink(char* filename)
     
     if (mip->INODE.i_links_count > 0)
     {
-        iput(mip);
+        mip-dirty = 1;
     }
     else
     {
         mip->refCount++;
         mip->dirty = 1;
-        iput(mip);
         idealloc(dev, mip->ino);
     }
+    iput(mip);
 }
 
