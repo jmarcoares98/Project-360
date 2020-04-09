@@ -8,6 +8,11 @@ int set_bit(char* buf, int bit)
 	return buf[bit / 8] |= (1 << (bit % 8)); // in Chapter 11.3.1
 }
 
+int clearbit(char* buf, int bit) 
+{
+	return buf[bit / 8] &= ~(1 << (bit % 8));
+}
+
 int ialloc(int dev)  // allocate an inode number from inode_bitmap
 {
 	int  i;
