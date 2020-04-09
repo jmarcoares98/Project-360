@@ -75,7 +75,7 @@ int unlink(char* filename)
 	{
 		mip->refCount++;
 		mip->dirty = 1;
-		idealloc(dev, mip->ino);
+		idalloc(dev, mip->ino);
 	}
 	iput(dev, mip);
 }
