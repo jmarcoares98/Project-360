@@ -26,7 +26,7 @@ void symlink(char *oldName, char *newName)
 	new_mip->INODE.i_mode = 0120000;
 	// (4).write the string oldNAME into the i_block[], which has room for 60 chars.
 	// (INODE has 24 unused bytes after i_block[]. So, up to 84 bytes for oldNAME)
-	new_mip->INODE.i_block[] = oldName;
+	new_mip->INODE.i_block[0] = oldName;
 	// set / x / y / z file size = number of chars in oldName
 	new_mip->INODE.i_size = strlen(oldName);
 	// (5).mark newFile parent minode dirty
@@ -37,7 +37,7 @@ void symlink(char *oldName, char *newName)
 }
 
 // reads the target fileName of a symbolic file and returns the contents
-int readlink(char *pathname, char buf)
+int read_link(char *pathname, char buf)
 {
 	int ino;
 	MINODE* mip;
@@ -50,7 +50,7 @@ int readlink(char *pathname, char buf)
 		return -1;
 	}
 	// (3).copy filename from INODE.i_block[] into buffer
-	strcpy(buf, mip->INODE.i_block[]);
+	strcpy(buf, mip->INODE.i_block);
 	// (3).return its string contents in INODE.i_block[].
 	
 	// (4).return file size
