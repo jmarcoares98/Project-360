@@ -138,8 +138,8 @@ int rm_child(MINODE* parent, char* name)
 			cp += dp->rec_len;
 			dp = (DIR*)cp;
 		}
+		// Write the parent's data block back to disk
+		// mark parent minode DIRTY for write - back
+		put_block(parent->dev, ip->i_block[i], buf);
 	}
-	// Write the parent's data block back to disk
-	// mark parent minode DIRTY for write - back
-	put_block(parent->dev, ip->i_block[i], buf);
 }
