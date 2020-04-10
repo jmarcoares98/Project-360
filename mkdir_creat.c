@@ -162,7 +162,6 @@ int mymkdir(MINODE* pip, char* name)
 
 int enter_name(MINODE* pip, int myino, char* myname)
 {
-	printf("test\n");
 	char* cp;
 	DIR* dp;
 	int idea_len, need_len, remain, i, bnum;
