@@ -25,8 +25,6 @@ int   n;         // number of component strings
 
 int fd, dev;
 int nblocks, ninodes, bmap, imap, inode_start; // disk parameters
-char* cp;
-DIR* dp;
 char buf[BLKSIZE];
 
 #include "util.c"

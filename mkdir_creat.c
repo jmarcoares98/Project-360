@@ -99,6 +99,9 @@ int mymkdir(MINODE* pip, char* name)
 {
 	MINODE* mip;
 	INODE* ip;
+	char* cp;
+	DIR* dp;
+	char buf[BLKSIZE];
 	int ino, bno, parent, mk;
 
 	// 1. pip points at the parent minode[] of "/a/b", name is a string "c"
@@ -113,10 +116,10 @@ int mymkdir(MINODE* pip, char* name)
 	// 3. mip = iget(dev, ino);  load the inode into a minode[] (in order to
 	// wirte contents to the INODE in memory.
 	mip = iget(dev, ino);
-	ip = &mip->INODE;
+	ip = &(mip->INODE);
 
 	// 4. Write contents to mip->INODE to make it a DIR INODE.
-    ip->i_mode = 040755;		// DIR type and permissions
+    ip->i_mode = 0x41ED;		// DIR type and permissions
 	ip->i_uid = running->uid;	// Owner uid
 	ip->i_gid = running->gid;	// Group Id
 	ip->i_size = BLKSIZE;		// Size in bytes
@@ -150,7 +153,7 @@ int mymkdir(MINODE* pip, char* name)
 	strncpy(dp->name, "..", 2); // for .. entries
 	dp->rec_len = BLKSIZE - 12;
 
-	put_block(dev, bno, buf);
+	put_block(parent, bno, buf);
 
 	ino = mip->ino;
 	// 7. Finally, enter name ENTRY into parent's directory
@@ -159,9 +162,11 @@ int mymkdir(MINODE* pip, char* name)
 
 int enter_name(MINODE* pip, int myino, char* myname)
 {
+	char* cp;
+	DIR* dp;
 	int idea_len, need_len, remain, i, bnum;
 	int name_len = strlen(myname);
-	INODE* ip = &pip->INODE;
+	INODE* ip = &(pip->INODE);
 
 	// update
 	memset(buf, 0, BLKSIZE);
@@ -289,6 +294,8 @@ int creat_file(char* name)
 int mycreat(MINODE* pip, char* name) {
 	MINODE* mip;
 	INODE* ip;
+	char* cp;
+	DIR* dp;
 	int ino, bno, parent, mk;
 
 	parent = pip->dev;
@@ -298,7 +305,7 @@ int mycreat(MINODE* pip, char* name) {
 	printf("ino: %d bno: %d\n", ino, bno);
 
 	mip = iget(dev, ino);
-	ip = &mip->INODE;
+	ip = &(mip->INODE);
 
 	ip->i_mode = 0x81A4;		
 	ip->i_uid = running->uid;	// Owner uid

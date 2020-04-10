@@ -71,6 +71,8 @@ int ls_file(MINODE* mip, char* name)
 int ls_dir(MINODE* mip)
 {
 	char temp[256];
+	char* cp;
+	DIR* dp;
 	char buf[BLKSIZE];
 
 	memset(buf, 0, 1024);
