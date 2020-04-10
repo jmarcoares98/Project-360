@@ -16,11 +16,11 @@ int chdir(char* pathname)
 	// (3).Verify mip->INODE is a DIR // return error if not DIR
 	if (!S_ISDIR(mip->INODE.i_mode)) {
 		printf("NOT A DIRECTORY\n");
-		iput(dev, mip);
+		iput(mip);
 		return -1;
 	}
 	// (4).iput(running->cwd); // release old cwd
-	iput(dev, running->cwd);
+	iput(running->cwd);
 
 	// (5).running->cwd = mip; // change cwd to mip
 	running->cwd = mip;
@@ -188,7 +188,7 @@ int quit()
 	for (i = 0; i < NMINODE; i++) {
 		mip = &minode[i];
 		if (mip->refCount > 0)
-			iput(dev, mip);
+			iput(mip);
 	}
 	exit(0);
 }

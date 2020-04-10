@@ -47,12 +47,12 @@ int rmdir(char* pathname)
 	// check DIR type (HOW?), not BUSY (HOW?), is empty:
 	if (!S_ISDIR(ip->i_mode)) {
 		printf("NOT A DIRECTORY\n");
-		iput(mip->dev, mip);
+		iput(mip);
 		return -1;
 	}
 
 	if (ip->i_links_count > 2) {
-		iput(mip->dev, mip);
+		iput(mip);
 		return -1;
 	}
 
@@ -72,7 +72,7 @@ int rmdir(char* pathname)
 	pino = getino(mip->dev, parent);
 	tip = iget(mip->dev, pino);
 	ip = &(tip->INODE);
-	iput(mip->dev, mip); // (which clears mip->refCount = 0);
+	iput(mip); // (which clears mip->refCount = 0);
 
 	// remove child's entry from parent directory
 	rm_child(tip, child);
@@ -87,7 +87,7 @@ int rmdir(char* pathname)
 	tip->dirty = 1;
 
 	// iput(pip);
-	iput(tip->dev, tip);
+	iput(tip);
 
 	// return SUCCESS;
 	return 1;

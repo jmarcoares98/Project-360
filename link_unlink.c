@@ -34,8 +34,8 @@ int link(char* old_file, char* new_file)
 	omip->INODE.i_links_count++;
 	omip->dirty = 1;
 	// (6). write INODE back to disk      
-	iput(dev,omip);
-	iput(dev,pmip);
+	iput(omip);
+	iput(pmip);
 }
 
 // unlinks a file
@@ -63,7 +63,7 @@ int unlink(char* filename)
 	pmip = iget(dev, pino);
 	rm_child(pmip, child);
 	pmip->dirty = 1;
-	iput(dev,pmip);
+	iput(pmip);
 	// (4). decrement INODE's link count by 1
 	mip->INODE.i_links_count--;
 	// (5). if i_links_count == 0 ==> rm pathname by deallocating its data blocks
@@ -77,5 +77,5 @@ int unlink(char* filename)
 		mip->dirty = 1;
 		idalloc(dev, mip->ino);
 	}
-	iput(dev, mip);
+	iput(mip);
 }

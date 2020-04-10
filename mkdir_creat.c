@@ -34,13 +34,14 @@ int ialloc(int dev)  // allocate an inode number from inode_bitmap
 
 int balloc(int dev)
 {
-	int  i;
+	int  i, n;
 	char buf[BLKSIZE];
 
 	// read inode_bitmap block
 	get_block(dev, bmap, buf);
 
-	for (i = 0; i < BLKSIZE; i++) {
+	for (i = 0; i < nblocks ; i++) {
+
 		if (tst_bit(buf, i) == 0) {
 			set_bit(buf, i);
 			put_block(dev, bmap, buf);
@@ -90,15 +91,13 @@ int make_dir(char* name)
 	// 4. call mymkdir(pip, child);
 	mymkdir(pip, child);
 
-
 	// 6. iput(pip);
-	iput(dev, pip);
+	iput(pip);
 }
 
 int mymkdir(MINODE* pip, char* name)
 {
 	MINODE* mip;
-	INODE* ip;
 	char* cp;
 	DIR* dp;
 	char buf[BLKSIZE];
@@ -116,25 +115,26 @@ int mymkdir(MINODE* pip, char* name)
 	// 3. mip = iget(dev, ino);  load the inode into a minode[] (in order to
 	// wirte contents to the INODE in memory.
 	mip = iget(dev, ino);
-	ip = &(mip->INODE);
 
 	// 4. Write contents to mip->INODE to make it a DIR INODE.
-    ip->i_mode = 0x41ED;		// DIR type and permissions
-	ip->i_uid = running->uid;	// Owner uid
-	ip->i_gid = running->gid;	// Group Id
-	ip->i_size = BLKSIZE;		// Size in bytes
-	ip->i_links_count = 2;	        // Links count=2 because of . and ..
-	ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);  // set to current time
-	ip->i_blocks = 2;                	// LINUX: Blocks count in 512-byte chunks
-	ip->i_block[0] = bno;             // new DIR has one data block
+    mip->INODE.i_mode = 0x41ED;		// DIR type and permissions
+	mip->INODE.i_uid = running->uid;	// Owner uid
+	mip->INODE.i_gid = running->gid;	// Group Id
+	mip->INODE.i_size = BLKSIZE;		// Size in bytes
+	mip->INODE.i_links_count = 2;	        // Links count=2 because of . and ..
+	mip->INODE.i_atime = mip->INODE.i_ctime = mip->INODE.i_mtime = time(0L);  // set to current time
+	mip->INODE.i_blocks = 2;                	// LINUX: Blocks count in 512-byte chunks
 
 	for (int i = 0; i < 15; i++) //  i_block[1] to i_block[14] = 0;
-		ip->i_block[i] = 0;
+		mip->INODE.i_block[i] = 0;
+
+	mip->INODE.i_block[0] = bno;             // new DIR has one data block
 
 	mip->dirty = 1;               // mark minode dirty
+	mip->ino = ino;
 
 	// 5. iput(mip); which should write the new INODE out to disk.
-	iput(mip->dev, mip);                    // write INODE to disk
+	iput(mip);                    // write INODE to disk
 
 	// 6. Write . and .. entries to a buf[ ] of BLKSIZE
 	memset(buf, 0, 1024);
@@ -162,17 +162,17 @@ int mymkdir(MINODE* pip, char* name)
 
 int enter_name(MINODE* pip, int myino, char* myname)
 {
+	printf("test\n");
 	char* cp;
 	DIR* dp;
 	int idea_len, need_len, remain, i, bnum;
 	int name_len = strlen(myname);
-	INODE* ip = &(pip->INODE);
 
 	// update
 	memset(buf, 0, BLKSIZE);
 
 	// Step to the last entry in a data block 
-	get_block(pip->dev, ip->i_block[0], buf);
+	get_block(pip->dev, pip->INODE.i_block[0], buf);
 	cp = buf;
 	dp = (DIR*)cp;
 
@@ -199,13 +199,13 @@ int enter_name(MINODE* pip, int myino, char* myname)
 		dp->name_len = name_len;
 		strncpy(dp->name, myname, dp->name_len);
 
-		put_block(pip->dev, ip->i_block[0], buf);
+		put_block(dev, pip->INODE.i_block[0], buf);
 	}
 	else {
 		// For each data block of parent DIR do // assume: only 12 direct blocks
 		for (i = 0; i < 12; i++) {
-			if (ip->i_block[i] == 0) {
-				ip->i_block[i] = balloc(dev);
+			if (pip->INODE.i_block[i] == 0) {
+				pip->INODE.i_block[i] = balloc(dev);
 				pip->refCount = 0;
 				memset(buf, 0, 1024);
 				cp = buf;
@@ -213,7 +213,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 			}
 
 			// Step to the last entry in a data block 
-			get_block(pip->dev, ip->i_block[i], buf);
+			get_block(pip->dev, pip->INODE.i_block[i], buf);
 			cp = buf;
 			dp = (DIR*)cp;
 
@@ -245,12 +245,12 @@ int enter_name(MINODE* pip, int myino, char* myname)
 		strncpy(dp->name, myname, dp->name_len);
 
 		// write data block to disk
-		put_block(pip->dev, ip->i_block[i], buf);
+		put_block(dev, pip->INODE.i_block[i], buf);
 	}
 
 	pip->dirty = 1;
-	ip->i_links_count++;
-	ip->i_atime = time(0);
+	pip->INODE.i_links_count++;
+	pip->INODE.i_atime = time(0);
 }
 
 /************* creat **************/
@@ -288,12 +288,11 @@ int creat_file(char* name)
 	mycreat(pip, child);
 
 	// 6. iput(pip);
-	iput(dev, pip);
+	iput(pip);
 }
 
 int mycreat(MINODE* pip, char* name) {
 	MINODE* mip;
-	INODE* ip;
 	char* cp;
 	DIR* dp;
 	int ino, bno, parent, mk;
@@ -304,44 +303,33 @@ int mycreat(MINODE* pip, char* name) {
 	bno = balloc(parent);
 	printf("ino: %d bno: %d\n", ino, bno);
 
-	mip = iget(dev, ino);
-	ip = &(mip->INODE);
+	mip = iget(parent, ino);
 
-	ip->i_mode = 0x81A4;		
-	ip->i_uid = running->uid;	// Owner uid
-	ip->i_gid = running->gid;	// Group Id
-	ip->i_size = BLKSIZE;		// Size in bytes
-	ip->i_links_count = 2;	        // Links count=2 because of . and ..
-	ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);  // set to current time
-	ip->i_blocks = 2;                	// LINUX: Blocks count in 512-byte chunks
-	ip->i_block[0] = bno;             // new DIR has one data block
+	mip->INODE.i_mode = 0x81A4;
+	mip->INODE.i_uid = running->uid;	// Owner uid
+	mip->INODE.i_gid = running->gid;	// Group Id
+	mip->INODE.i_size = BLKSIZE;		// Size in bytes
+	mip->INODE.i_links_count = 2;	        // Links count=2 because of . and ..
+	mip->INODE.i_atime = mip->INODE.i_ctime = mip->INODE.i_mtime = time(0L);  // set to current time
+	mip->INODE.i_blocks = 2;                	// LINUX: Blocks count in 512-byte chunks
 
 	for (int i = 0; i < 15; i++) //  i_block[1] to i_block[14] = 0;
-		ip->i_block[i] = 0;
+		mip->INODE.i_block[i] = 0;
+
+	mip->INODE.i_block[0] = bno;             // new DIR has one data block
 
 	mip->dirty = 1;               // mark minode dirty
+	mip->ino = ino;
 
 	// 5. iput(mip); which should write the new INODE out to disk.
-	iput(dev, mip);                    // write INODE to disk
+	iput(mip);                    // write INODE to disk
 
 	// 6. Write . and .. entries to a buf[ ] of BLKSIZE
 	memset(buf, 0, 1024);
 
-	dp = (DIR*)buf;
-	dp->inode = ino;
-	strncpy(dp->name, ".", 1); // for . entries
-	dp->name_len = 1;
-	dp->rec_len = 12;
+	put_block(parent, bno, buf);
 
-	cp = buf + 12;
-	dp = (DIR*)cp;
-
-	dp->inode = pip->ino;
-	dp->name_len = 2;
-	strncpy(dp->name, "..", 2); // for .. entries
-	dp->rec_len = BLKSIZE - 12;
-
-	put_block(dev, bno, buf);
+	ino = mip->ino;
 
 	enter_name(pip, ino, name);
 }

@@ -77,7 +77,7 @@ MINODE* iget(int dev, int ino)
 	return 0;
 }
 
-void iput(int dev, MINODE* mip)
+void iput(MINODE* mip)
 {
 	int i, block, offset;
 	char buf[BLKSIZE];
@@ -168,15 +168,15 @@ int getino(int dev, char* pathname)
 		ino = search(mip, name[i]);
 
 		if (ino == 0) {
-			iput(dev, mip);
+			iput(mip);
 			printf("name %s does not exist\n", name[i]);
 			return 0;
 		}
-		iput(dev, mip);                // release current mip
+		iput(mip);                // release current mip
 		mip = iget(dev, ino);     // get next mip
 	}
 
-	iput(dev, mip);                   // release mip  
+	iput(mip);                   // release mip  
 	return ino;
 }
 
