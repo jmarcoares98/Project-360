@@ -53,26 +53,30 @@ int rmdir(char* pathname)
 	}
 
 	if (ip->i_links_count >= 2) {
-		printf("DIRECTORY HAS FILES!\n");
-		if (ip->i_block[1])
-		{
-			get_block(dev, ip->i_block[1], buf); //get blocks
-
-			cp = buf; //pointer
-			dp = (DIR*)buf; //redfine dir pointer
-
-			while (cp < buf + 1024)
+		if (ip->i_links_count >= 2) {
+			printf("DIRECTORY IS NOT EMPTY!\n");
+			return 1;
+		}
+		if (ip->i_links_count == 2) {
+			if (ip->i_block[1])
 			{
-				strncpy(name, dp->name, dp->name_len); //copy names
-				name[dp->name_len] = 0; //set names to 0
+				get_block(dev, ip->i_block[1], buf); //get blocks
 
-				if (strcmp(name, ".") != 0 && strcmp(name, "..") != 0)
+				cp = buf; //pointer
+				dp = (DIR*)buf; //redfine dir pointer
+
+				while (cp < buf + 1024)
 				{
-					return 1;
+					strncpy(name, dp->name, dp->name_len);
+					name[dp->name_len] = 0;
+
+					if (strcmp(name, ".") != 0 && strcmp(name, "..") != 0) {
+						printf("DIRECTORY IS NOT EMPTY!\n");
+						return 1;
+					}
 				}
 			}
 		}
-		return 1;
 	}
 
 	// ASSUME passed the above checks.
