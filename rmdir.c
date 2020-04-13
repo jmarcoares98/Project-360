@@ -31,7 +31,7 @@ int bdalloc(int dev, int blk) // deallocate a blk number
 
 int rmdir(char* pathname)
 {
-	int ino, pino;
+	int ino, tino;
 	MINODE* mip, * tip;
 	INODE* ip;
 	char parent[256], child[256], path[256];
@@ -59,9 +59,8 @@ int rmdir(char* pathname)
 	// ASSUME passed the above checks.
 	// get parent DIR's ino and Minode (pointed by pip);
 	for (int i = 0; i < 12; i++) {
-		if (ip->i_block[i] == 0)
-			continue;
-		bdalloc(mip->dev, ip->i_block[i]);
+		if (ip->i_block[i] != 0)
+			bdalloc(mip->dev, ip->i_block[i]);
 	}
 	idalloc(mip->dev, mip->ino);
 
@@ -69,8 +68,8 @@ int rmdir(char* pathname)
 	strcpy(parent, dirname(pathname));
 	strcpy(child, basename(pathname));
 
-	pino = getino(mip->dev, parent);
-	tip = iget(mip->dev, pino);
+	tino = getino(mip->dev, parent);
+	tip = iget(mip->dev, tino);
 	ip = &(tip->INODE);
 	iput(mip); // (which clears mip->refCount = 0);
 
@@ -97,66 +96,73 @@ int rm_child(MINODE* parent, char* name)
 {
 	INODE* ip = &(parent->INODE);
 	char buf[BLKSIZE], temp[256];
+	memset(buf, 0, BLKSIZE);
+	char* cp, * lastcp;
+	DIR* dp, * lastdp, *prev;
+	int good = 0, size;
 
-	get_block(dev, parent->INODE.i_block[0], buf);
-	char* cp, * lastcp = buf;
-	DIR* dp = (DIR*)buf, * lastdp = (DIR*)buf;
-	int dpreclen;
-
-	// find last entry block
-	while ((lastcp + lastdp->rec_len) < buf + BLKSIZE) {
-		lastcp += dp->rec_len;
+	for (int i = 0; i < 12; i++) {
+		// getting data block assuming there is only 12
+		get_block(dev, parent->INODE.i_block[i], buf);
+		cp = buf;
+		dp = (DIR*)cp;
+		lastcp = buf;
 		lastdp = (DIR*)lastcp;
-	}
 
-	cp = buf;
-	dp = (DIR*)cp;
+		// Search parent INODE's data block(s) for the entry of name
+		while (cp < buf + BLKSIZE) {
+			strncpy(temp, dp->name, dp->name_len);
+			temp[dp->name_len] = 0;
+			printf("%4d  %4d  %4d    %s\n",
+				dp->inode, dp->rec_len, dp->name_len, temp);
+			if (strcmp(name, temp) == 0) {
+				//Delete name entry from parent directory by
+				//if (first and only entry in a data block){
+				if (dp->rec_len == BLKSIZE) {
+					//deallocate the data block
+					bdalloc(parent->dev, ip->i_block[i]);
 
-	// Search parent INODE's data block(s) for the entry of name
-	while (cp < buf + BLKSIZE) {
-		strncpy(temp, dp->name, dp->name_len);
-		temp[dp->name_len] = 0;
-		printf("%4d  %4d  %4d    %s\n",
-			dp->inode, dp->rec_len, dp->name_len, temp);
-		if (strcmp(name, temp) == 0) {
-			dpreclen = dp->rec_len;
-			// Delete name entry from parent directory by
-			// if (first and only entry in a data block){
-			//if (dp->rec_len == BLKSIZE) {
-				//printf("test1/n");
-				// deallocate the data block
-				//bdalloc(parent->dev, ip->i_block[i]);
+					//compact parent�s i_block[] array to eliminate the deleted entry if it�s
+					//between nonzero entries
+					ip->i_block[i] = 0;
+					ip->i_blocks--;
+				}
 
-				// compact parent�s i_block[] array to eliminate the deleted entry if it�s
-				// between nonzero entries
-				//ip->i_block[i] = 0;
-				//ip->i_blocks--;
-			//}
+				else {
+					// look for last entry in block
+					while ((lastdp->rec_len + lastcp) < buf + BLKSIZE) {
+						prev = lastdp; // get the prev dp
+						lastcp += lastdp->rec_len;
+						lastdp = (DIR*)lastcp;
+					}
 
-			// else if LAST entry in block
-			if (cp == lastcp) {
-				printf("test2\n");
-				dp = (DIR*)cp;
-				dp->rec_len += dpreclen;
-				break;
+					// if last entry in block
+					if (lastdp == dp) {
+						prev->rec_len += dp->rec_len;
+						good = 1;
+					}
+
+					// if in the middle of a block{
+					else {
+						// get the size
+						size = buf + BLKSIZE - (cp + dp->rec_len);
+						lastdp->rec_len += dp->rec_len;
+
+						memcpy(cp, (cp + dp->rec_len), size);
+						good = 1;
+					}
+				}
+
 			}
 
-			// else: entry is first but not the only entry or in the middle of a block
-			else {
-				printf("test3\n");
-				dp = (DIR*)lastcp;
-				dp->rec_len += dpreclen;
-				memcpy(cp, cp + dpreclen, BLKSIZE - cp - dpreclen);
-			}
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
 		}
 
-		cp += dp->rec_len;
-		dp = (DIR*)cp;
+		if (good) {
+			put_block(parent->dev, ip->i_block[i], buf);
+			return 1;
+		}
 	}
-
-	// Write the parent's data block back to disk
-	// mark parent minode DIRTY for write - back
-	put_block(parent->dev, ip->i_block[0], buf);
-	return 1;
 
 }
