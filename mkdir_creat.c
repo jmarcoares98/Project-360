@@ -171,7 +171,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 	int name_len = strlen(myname);
 
 	//For each data block of parent DIR do { // assume: only 12 direct blocks
-	for (i = 0; i < 12; i++) {
+	for (i = 0; i < ip->i_size / BLKSIZE; i++) {
 		if (ip->i_block[i] == 0)
 			break;
 

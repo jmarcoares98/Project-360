@@ -34,7 +34,9 @@ int rmdir(char* pathname)
 	int ino, tino;
 	MINODE* mip, * tip;
 	INODE* ip;
-	char parent[256], child[256], path[256];
+	char parent[256], child[256], path[256], name[256];
+	char* cp;
+	DIR* dp;
 
 	// get inumber of pathname
 	ino = getino(dev, pathname);
@@ -47,13 +49,30 @@ int rmdir(char* pathname)
 	// check DIR type (HOW?), not BUSY (HOW?), is empty:
 	if (!S_ISDIR(ip->i_mode)) {
 		printf("NOT A DIRECTORY\n");
-		iput(mip);
-		return -1;
+		return 1;
 	}
 
-	if (ip->i_links_count > 2) {
-		iput(mip);
-		return -1;
+	if (ip->i_links_count >= 2) {
+		printf("DIRECTORY HAS FILES!\n");
+		if (ip->i_block[1])
+		{
+			get_block(dev, ip->i_block[1], buf); //get blocks
+
+			cp = buf; //pointer
+			dp = (DIR*)buf; //redfine dir pointer
+
+			while (cp < buf + 1024)
+			{
+				strncpy(name, dp->name, dp->name_len); //copy names
+				name[dp->name_len] = 0; //set names to 0
+
+				if (strcmp(name, ".") != 0 && strcmp(name, "..") != 0)
+				{
+					return 1;
+				}
+			}
+		}
+		return 1;
 	}
 
 	// ASSUME passed the above checks.
