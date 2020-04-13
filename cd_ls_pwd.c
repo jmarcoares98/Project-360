@@ -104,19 +104,34 @@ int ls_dir(MINODE* mip)
 int ls(char* pathname)
 {
 	char* temp_dir[128];
-	char temp_cwd[256];
+    char* temp_cwd;
 	char* token = strtok(pathname, " ");
 	int i = 0;
 
-	while (token != NULL)
-	{
-		printf("%s\n", token);
-		temp_dir[i] = token;
-		printf("char buf: %s\n", temp_dir[i]);
-		token = strtok(NULL, " ");
-		i++;
-	}
-	ls_dir(running->cwd);
+    //strcpy(temp_cwd, running->fname);
+    if (token)
+    {
+        printf("in if pathname: \n");
+        while (token != NULL)
+        {
+            printf("%s\n", token);
+            temp_dir[i] = token;
+            printf("char buf: %s\n", temp_dir[i]);
+            token = strtok(NULL, " ");
+            i++;
+            if (token == NULL)
+            {
+                chdir(temp_dir[i - 1]);
+                ls_dir(running->cwd);
+                chdir("..");
+            }
+        }
+    }
+    else
+    {
+        printf("else\n");
+        ls_dir(running->cwd);
+    }
 }
 
 /************* pwd **************/
@@ -178,6 +193,7 @@ void rpwd(MINODE* wd)
 	}
 	pathname[dp->name_len] = '\0';
 	printf("%s/", pathname);
+    
 }
 
 /************* quit **************/
