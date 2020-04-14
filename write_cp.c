@@ -12,7 +12,7 @@ int write_file()
 
 int mywrite(int fd, char *buf, int nbytes)
 {
-	//while (nbytes > 0) {
+	// while (nbytes > 0) {
 
 	//	compute LOGICAL BLOCK(lbk) and the startByte in that lbk :
 
