@@ -101,7 +101,7 @@ void iput(MINODE* mip)
 	block = (mip->ino - 1) / 8 + inode_start;
 	offset = (mip->ino) % 8;
 
-	get_block(dev, block, (char*)buf);
+	get_block(mip->dev, block, (char*)buf);
 	ip = ((INODE*)buf + offset);
 	memcpy(ip, &mip->INODE, sizeof(INODE));
 	put_block(mip->dev, block, buf);
