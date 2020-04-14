@@ -52,31 +52,10 @@ int rmdir(char* pathname)
 		return 1;
 	}
 
-	if (ip->i_links_count >= 2) {
-		if (ip->i_links_count >= 2) {
-			printf("DIRECTORY IS NOT EMPTY!\n");
-			return 1;
-		}
-		if (ip->i_links_count == 2) {
-			if (ip->i_block[1])
-			{
-				get_block(dev, ip->i_block[1], buf); //get blocks
+	if (ip->i_links_count > 2) {
+		printf("DIRECTORY IS NOT EMPTY!\n");
+		return 1;
 
-				cp = buf; //pointer
-				dp = (DIR*)buf; //redfine dir pointer
-
-				while (cp < buf + 1024)
-				{
-					strncpy(name, dp->name, dp->name_len);
-					name[dp->name_len] = 0;
-
-					if (strcmp(name, ".") != 0 && strcmp(name, "..") != 0) {
-						printf("DIRECTORY IS NOT EMPTY!\n");
-						return 1;
-					}
-				}
-			}
-		}
 	}
 
 	// ASSUME passed the above checks.
@@ -98,7 +77,7 @@ int rmdir(char* pathname)
 
 	// remove child's entry from parent directory
 	rm_child(tip, child);
-	
+
 	// decrement pip's link_count by 1; 
 	ip->i_links_count -= 1;
 
@@ -121,7 +100,7 @@ int rm_child(MINODE* parent, char* name)
 	char buf[BLKSIZE], temp[256];
 	memset(buf, 0, BLKSIZE);
 	char* cp, * lastcp;
-	DIR* dp, * lastdp, *prev;
+	DIR* dp, * lastdp, * prev;
 	int good = 0, size;
 
 	for (int i = 0; i < 12; i++) {
