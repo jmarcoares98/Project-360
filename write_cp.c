@@ -1,3 +1,4 @@
+// writes nbytes from buf in user space to an opened file descriptor and returns the actual number of bytes written
 int write_file()
 {
 	// 1. Preprations:
