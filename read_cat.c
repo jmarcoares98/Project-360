@@ -1,4 +1,6 @@
-int read_file(char *pathname) {
+int read_file(char *pathname) 
+{
+	int fd;
 	// 1. Assume that fd is opened for READ.
 
 	// 2. The offset in the OFT points to the current byte position in the file from
@@ -17,15 +19,18 @@ int read_file(char *pathname) {
 	// At this moment, the file has 
 	// avil = file_size - offset
 
-	// 4. myread() behaves exactly the same as the read(fd, buf, nbytes) syscall of 
-	// Unix / Linux.It tries to read nbytes from fd to buf[], and returns the
-	// actual number of bytes read.
+	// 4. myread() 
+	// return (myread(fd, buf, nbytes));
 }
 
-int myread(int fd, char *buf,int nbytes) { // behaves EXACTLY the same as the read() system call in Unix / Linux.
-	// int count = 0;
-	// avil = fileSize - OFT's offset // number of bytes still available in file.
-	// char* cq = buf;                // cq points at buf[ ]
+// behaves EXACTLY the same as the read() system call in Unix / Linux.
+// returns the actual number of bytes read
+int myread(int fd, char *buf, int nbytes) 
+{ 
+	int count = 0;
+	// offset = OFT.offset;
+	// avil = fileSize - offset // number of bytes still available in file.
+	char* cq = buf;                // cq points at buf[ ]
 
 	//while (nbytes && avil) {
 
@@ -74,13 +79,13 @@ int mycat(char* pathname) {
 	//char mybuf[1024], dummy = 0;  // a null char at end of mybuf[ ]
 	//int n;
 
-	//1. int fd = open filename for READ;
+	// 1. int fd = open filename for READ;
 
-	//2. while (n = read(fd, mybuf[1024], 1024)) {
+	// 2. while (n = read(fd, mybuf[1024], 1024)) {
 	//	mybuf[n] = 0;             // as a null terminated string
 	//	// printf("%s", mybuf);   <=== THIS works but not good
 	//	spit out chars from mybuf[] but handle \n properly;
 	//}
 
-	//3. close(fd);
+	// 3. close(fd);
 }
