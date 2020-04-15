@@ -13,6 +13,29 @@ int write_file()
 
 int mywrite(int fd, char *buf, int nbytes)
 {
+    int count = 0;
+    
+    int lbk, start, blk;
+    
+    oftp = running->fd[fd];
+    mip - oftp->INODE;
+    
+    while(nbytes)
+    {
+        lbk = oft->offset / BLKSIZE;
+        start = oft->offset % BLKSIZE;
+        
+        if (lblk < 12)
+        {
+            if (mip->INODE.i_block[lblk] == 0)
+            {
+                mip->INODE.i_block[lblk] = balloc(mip->dev);
+            }
+            blk = mip->INODE.i_block[lblk];
+        }
+    }
+    
+    
 	// while (nbytes > 0) {
 
 	//	compute LOGICAL BLOCK(lbk) and the startByte in that lbk :

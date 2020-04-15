@@ -108,6 +108,7 @@ int ls(char* pathname)
 	char* token = strtok(pathname, " ");
 	int i = 0;
 
+<<<<<<< Updated upstream
 	//strcpy(temp_cwd, running->fname);
 	if (token)
 	{
@@ -132,6 +133,34 @@ int ls(char* pathname)
 		printf("else\n");
 		ls_dir(running->cwd);
 	}
+=======
+    
+    
+    //strcpy(temp_cwd, running->fname);
+    if (token)
+    {
+        printf("in if pathname: \n");
+        while (token != NULL)
+        {
+            printf("%s\n", token);
+            temp_dir[i] = token;
+            printf("char buf: %s\n", temp_dir[i]);
+            token = strtok(NULL, " ");
+            i++;
+            if (token == NULL)
+            {
+                chdir(temp_dir[i - 1]);
+                ls_dir(running->cwd);
+                chdir("..");
+            }
+        }
+    }
+    else
+    {
+        printf("else\n");
+        ls_dir(running->cwd);
+    }
+>>>>>>> Stashed changes
 }
 
 /************* pwd **************/
