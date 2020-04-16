@@ -1,14 +1,43 @@
 // writes nbytes from buf in user space to an opened file descriptor and returns the actual number of bytes written
 int write_file()
 {
+    char *fds, *str;
 	// 1. Preprations:
-	// ask for a fdand a text string to write;
+	// ask for a fd and a text string to write;
+    
+    scanf("What file directory would you like to write to?\n", &fd);
+    scanf("What string would you like to write to it?\n", &str);
+    
+    int fd = atoi(fds);
+    
+    if (fd < 0 || fd > 9)
+    {
+        printf("Invalid file\n");
+        return -1;
+    }
+    // 2. verify fd is indeed opened for WR or RW or APPEND mode
 
-	// 2. verify fd is indeed opened for WR or RW or APPEND mode
-
+    if(running->fd[fd] == NULL)
+    {
+        printf("No running fd\n");
+        return -1;
+    }
+    
+    if (running->fd[fd]->mode == 0)
+    {
+        printf("File is in read mode!\n");
+        return -1;
+    }
+    
 	// 3. copy the text string into a buf[] and get its length as nbytes.
+    
+    char new_buf[];
+    
+    strcpy(fds, new_buf);
+    
+    int len = sizeof(new_buf);
 
-	// return(mywrite(fd, buf, nbytes));
+	return(mywrite(fd, new_buf, len));
 }
 
 int mywrite(int fd, char *buf, int nbytes)
@@ -33,8 +62,68 @@ int mywrite(int fd, char *buf, int nbytes)
             }
             blk = mip->INODE.i_block[lblk];
         }
+        // indirect blocks
+        else if (lblk >= 12 && lblk < 256+12)
+        {
+            if (mip->INODE.i_block[12]==0)
+            {
+                mip->INODE.i_block[12] = balloc(mip->dev);
+                memset(ibuf,0,256);
+            }
+            get_block(mip->dev, mip->INODE.i_block[12], (char*)ibuf);
+            blk = ibuf[lmlk - 12];
+            if (blk==0)
+            {
+                mip->INODE.i_block[lblk] = balloc(mip->dev);
+                ibuf[lmlk - 12] = mip->INODE.i_block[lblk];
+            }
+        }
+        // double indirect blocks
+        else
+        {
+            memset(ibuf, 0, 256);
+            get_block(mip->dev, mip->INODE.i_block[13], (char*)dbuf);
+            lblk -= (12 + 256);
+            get_block(mip->dev, dlbk, (char*dbuf));
+            blk = dbuf[lblk % 256];
+        }
+        
+        memset(writeBuf,0,BLKSIZE);
+        //read to buf
+        get_block(mip->dev, blk, writeBuf);
+        cp = writeBuf + start;
+        remain = BLKSIZE - start;
+        
+        if(remain < nbytes)
+           {
+             strncpy(cp, cq, remain);
+             count += remain;
+             nbytes -= remain;
+             running->fd[fd]->offset += remain;
+             //check offset
+             if(running->fd[fd]->offset > mip->INODE.i_size)
+             {
+               mip->INODE.i_size += remain;
+             }
+             remain -= remain;
+           }
+           else
+           {
+             strncpy(cp, cq, nbytes);
+             count += nbytes;
+             remain -= nbytes;
+             running->fd[fd]->offset += nbytes;
+             if(running->fd[fd]->offset > mip->INODE.i_size)
+             {
+               mip->INODE.i_size += nbytes;
+             }
+             nbytes -= nbytes;
+           }
+           put_block(mip->dev, blk, writeBuf);
+           mip->dirty = 1;
+           printf("Wrote %d chars into file.\n", count);
     }
-    
+}
     
 	// while (nbytes > 0) {
 
