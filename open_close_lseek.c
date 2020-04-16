@@ -84,6 +84,7 @@ int truncate(MINODE* mip)
 
 	// 2. update INODE's time field
 	// mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
+
 	// 3. set INODE's size to 0 and mark Minode[ ] dirty
 	mip->INODE.i_size = 0;
 	mip->dirty = 1;
@@ -146,19 +147,19 @@ int pfd()
 	// to help the user know what files has been opened.
 
 	int i; 
-	OFT* oftp;
+	OFT* ofpt;
 
 	printf("\n  fd   mode   offset   device   inode \n");
 	printf("  --   ----   ------   ------   ----- \n");
 	for (i = 0; i < 10; i++){
-		oftp = running->fd[i];
+		ofpt = running->fd[i];
 
-		if (oftp->refCount == 0)
+		if (ofpt->refCount == 0)
 			return;
 
 		printf("  %02d    ", i);
 		//prints the mode in chars
-		switch (oftp->mode){
+		switch (ofpt->mode){
 		case 0:
 			printf("RD");
 			break;
@@ -177,7 +178,7 @@ int pfd()
 		}
 
 		//prints the offset, dev and ino
-		printf("    %6d     %2d     %5d\n", oftp->offset, oftp->mptr->dev, oftp->mptr->ino);
+		printf("    %6d     %2d     %5d\n", ofpt->offset, ofpt->mptr->dev, ofpt->mptr->ino);
 	}
 	return 0;
 }
