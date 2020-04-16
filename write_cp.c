@@ -122,30 +122,27 @@ int mywrite(int fd, char *buf, int nbytes)
            put_block(mip->dev, blk, writeBuf);
            mip->dirty = 1;
            printf("Wrote %d chars into file.\n", count);
+        
+        //    /* all cases come to here : write to the data block */
+        get_block(mip->dev, blk, wbuf);   // read disk block into wbuf[ ]
+        char* cp = wbuf + startByte;      // cp points at startByte in wbuf[]
+        remain = BLKSIZE - startByte;     // number of BYTEs remain in this block
+        char* cq = buf;
+
+        while (remain > 0) {               // write as much as remain allows
+            *cp++ = *cq++;              // cq points at buf[ ]
+            nbytes--; remain--;         // dec counts
+            oftp->offset++;             // advance offset
+            if (offset > INODE.i_size)  // especially for RW|APPEND mode
+                mip->INODE.i_size++;    // inc file size (if offset > fileSize)
+            if (nbytes <= 0) break;     // if already nbytes, break
+        }
+        put_block(mip->dev, blk, wbuf);   // write wbuf[ ] to disk
     }
+    mip->dirty = 1
+    printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
+    return nbytes
 }
-
-	//	/* all cases come to here : write to the data block */
-	get_block(mip->dev, blk, wbuf);   // read disk block into wbuf[ ]
-	char* cp = wbuf + startByte;      // cp points at startByte in wbuf[]
-	remain = BLKSIZE - startByte;     // number of BYTEs remain in this block
-    char* cq = buf;
-
-    while (remain > 0) {               // write as much as remain allows
-        *cp++ = *cq++;              // cq points at buf[ ]
-        nbytes--; remain--;         // dec counts
-        oftp->offset++;             // advance offset
-        if (offset > INODE.i_size)  // especially for RW|APPEND mode
-            mip->INODE.i_size++;    // inc file size (if offset > fileSize)
-        if (nbytes <= 0) break;     // if already nbytes, break
-    }
-    put_block(mip->dev, blk, wbuf);   // write wbuf[ ] to disk
-	//	// loop back to outer while to write more .... until nbytes are written
-	//}
-
-	//mip->dirty = 1;       // mark mip dirty for iput() 
-	//printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
-	//return nbytes;
 
 int cp_file(char* source, char* dest)
 {
