@@ -123,9 +123,9 @@ int mywrite(int fd, char *buf, int nbytes)
 int cp_file(char* source, char* dest)
 {
 	// 1. fd = open src for READ;
-    int fs = open_file(source, '0');
+	int fs = 0;//open_file(source, 0);
 	// 2. gd = open dst for WR | CREAT;
-    int gd = open_file(dest, '1');
+	int gd = 0;// open_file(dest, 1);
 	// NOTE:In the project, you may have to creat the dst file first, then open it
 	// for WR, OR  if open fails due to no file yet, creat itand then open it
 	// for WR.
@@ -137,8 +137,8 @@ int cp_file(char* source, char* dest)
 		mywrite(gd, buf, n);  // notice the n in write()
     }
     
-    close_file(fs);
-    close_file(gd);
+   // close_file(fs);
+   // close_file(gd);
 }
 
 //int mv_file(char* source, char* dest)

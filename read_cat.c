@@ -114,7 +114,7 @@ int mycat(char* pathname) {
 	int n, fd = 0;
 
 	// 1. int fd = open filename for READ;
-	fd = open_file(pathname, 0);
+	//fd = open_file(pathname, 0);
 
 	// 2. while (n = read(fd, mybuf[1024], 1024)) {
 	while (n = read(fd, mybuf, BLKSIZE)) {
@@ -125,5 +125,5 @@ int mycat(char* pathname) {
 	printf("\n\r");
 
 	// 3. close(fd);
-	close_file(fd);
+	//close_file(fd);
 }

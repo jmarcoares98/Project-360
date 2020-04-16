@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 		else if (strcmp(cmd, "symlink") == 0)
 			symlink(pathname, pathname2);
 		else if (strcmp(cmd, "open") == 0)
-			open_file(pathname, atoi(pathname2));
+			open_file(pathname, pathname2);
 		else if (strcmp(cmd, "close") == 0)
 			close_file(atoi(pathname));
 		else if (strcmp(cmd, "lseek") == 0)
