@@ -1,6 +1,6 @@
 // opens a file for read or write
 // flags = 0|1|2|3 for READ|WRITE|RDWR|APPEND
-int open_file(char* filename, int flags)
+int open_file(char* filename, char* flags)
 {
 	int ino, index, flag;
 	MINODE* mip;
@@ -32,7 +32,7 @@ int open_file(char* filename, int flags)
 
 	// 5. allocate a FREE OpenFileTable (OFT) and fill in values:
 	oftp = (OFT*)malloc(sizeof(OFT));
-	oftp->mode = flags;      // mode = 0|1|2|3 for R|W|RW|APPEND 
+	oftp->mode = atoi(flags);      // mode = 0|1|2|3 for R|W|RW|APPEND 
 	oftp->refCount = 1;
 	oftp->mptr = mip;  // point at the file's minode[]
 
@@ -86,7 +86,7 @@ int truncate(MINODE* mip)
 	// mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
 
 	// 3. set INODE's size to 0 and mark Minode[ ] dirty
-    deallocateInodeDataBlocks(dev,mip);
+    //deallocateInodeDataBlocks(dev,mip);
     mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
     mip->INODE.i_size = 0;
     mip->dirty = 1;
@@ -94,8 +94,16 @@ int truncate(MINODE* mip)
 	//mip->dirty = 1;
 }
 
+int close_file(char* pathname)
+{
+	int fd = atoi(pathname);
+
+	my_close(fd);
+	return;
+}
+
 // closes a file descriptor
-int close_file(int fd)
+int my_close(char * pathname)
 {
 	MINODE *mip;
 	OFT *oftp;
@@ -122,9 +130,11 @@ int close_file(int fd)
 
 // sets the offset in the OFT of an opened file descriptor to the byte position either from the file beginning
 // (SEEK_SET) or relative to the current position (SEEK_CUR)
-int lseek(int fd, int position)
+int mylseek(char *pathname, char*pathname2)
 {
 	OFT *oftp;
+	int fd = atoi(pathname), position = atoi(pathname2);
+	
 	// From fd, find the OFT entry.
 	oftp = running->fd[fd];
 	// change OFT entry's offset to position but make sure NOT to over run either end

@@ -70,7 +70,7 @@ int mount_root()
 	root = iget(dev, 2);
 }
 
-char* disk = "mydisk";
+char* disk = "diskimage";
 int main(int argc, char* argv[])
 {
 	int ino;
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
 		else if (strcmp(cmd, "close") == 0)
 			close_file(atoi(pathname));
 		else if (strcmp(cmd, "lseek") == 0)
-			lseek(pathname, pathname2);
+			mylseek(pathname, pathname2);
 		else if (strcmp(cmd, "read") == 0)
 			read_file(pathname, pathname2);
 		else if (strcmp(cmd, "write") == 0)
