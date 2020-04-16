@@ -85,8 +85,12 @@ int truncate(MINODE* mip)
 	// 2. update INODE's time field
 	// mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
 	// 3. set INODE's size to 0 and mark Minode[ ] dirty
-	mip->INODE.i_size = 0;
-	mip->dirty = 1;
+    deallocateInodeDataBlocks(dev,mip);
+    mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
+    mip->INODE.i_size = 0;
+    mip->dirty = 1;
+	//mip->INODE.i_size = 0;
+	//mip->dirty = 1;
 }
 
 // closes a file descriptor
