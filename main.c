@@ -147,13 +147,13 @@ int main(int argc, char* argv[])
 		else if (strcmp(cmd, "symlink") == 0)
 			symlink(pathname, pathname2);
 		else if (strcmp(cmd, "open") == 0)
-			open_file(pathname, pathname2);
+			open_file(pathname, atoi(pathname2));
 		else if (strcmp(cmd, "close") == 0)
-			close_file(pathname);
+			close_file(atoi(pathname));
 		else if (strcmp(cmd, "lseek") == 0)
 			lseek(pathname, pathname2);
 		else if (strcmp(cmd, "read") == 0)
-			read_file(pathname);
+			read_file(pathname, pathname2);
 		else if (strcmp(cmd, "write") == 0)
 			write_file(pathname);
 		else if (strcmp(cmd, "cat") == 0)
