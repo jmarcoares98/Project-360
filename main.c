@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
 		else if (strcmp(cmd, "open") == 0)
 			open_file(pathname, pathname2);
 		else if (strcmp(cmd, "close") == 0)
-			close_file(atoi(pathname));
+			close_file(pathname);
 		else if (strcmp(cmd, "lseek") == 0)
 			mylseek(pathname, pathname2);
 		else if (strcmp(cmd, "read") == 0)

@@ -78,20 +78,56 @@ int open_file(char* filename, char* flags)
 
 int truncate(MINODE* mip)
 {
+	int buf[256];
+	int buf2[256];
+	int bnumber, i, j;
 	// 1. release mip->INODE's data blocks;
 	// a file may have 12 direct blocks, 256 indirect blocks and 256 * 256
 	// double indirect data blocks. release them all.
+	//deallocate for direct
+	for (i = 0; i < 12; i++)
+	{
+		if (mip->INODE.i_block[i] != 0)
+		{
+			bdalloc(mip->dev, mip->INODE.i_block[i]);
+		}
+	}
+	//Deallocate Indirect blocks
+	if (mip->INODE.i_block[12] != 0)
+	{
+		get_block(dev, mip->INODE.i_block[12], (char*)buf);
+		for (i = 0; i < 256; i++)
+		{
+			if (buf[i] != 0) { bdalloc(mip->dev, buf[i]); }
+		}
+		bdalloc(mip->dev, mip->INODE.i_block[12]);
+		if (mip->INODE.i_block[13] != 0)
+		{
+			memset(buf, 0, 256);
+			get_block(mip->dev, mip->INODE.i_block[13], (char*)buf);
+			for (i = 0; i < 256; i++)
+			{
+				if (buf[i])
+				{
+					get_block(mip->dev, buf[i], (char*)buf2);
+					for (j = 0; j < 256; j++)
+					{
+						if (buf2[j] != 0) { bdalloc(mip->dev, buf2[j]); }
+					}
+					bdalloc(mip->dev, buf[i]);
+				}
+			}
+			bdalloc(mip->dev, mip->INODE.i_block[13]);
+		}
+	}
 
 	// 2. update INODE's time field
-	// mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
+	mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
 
 	// 3. set INODE's size to 0 and mark Minode[ ] dirty
     //deallocateInodeDataBlocks(dev,mip);
-    mip->INODE.i_atime = mip->INODE.i_mtime = time(0L);
     mip->INODE.i_size = 0;
     mip->dirty = 1;
-	//mip->INODE.i_size = 0;
-	//mip->dirty = 1;
 }
 
 int close_file(char* pathname)
@@ -103,7 +139,7 @@ int close_file(char* pathname)
 }
 
 // closes a file descriptor
-int my_close(char * pathname)
+int my_close(int fd)
 {
 	MINODE *mip;
 	OFT *oftp;
