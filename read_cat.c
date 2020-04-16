@@ -1,6 +1,6 @@
 int read_file(char *pathname, char *pathname2) 
 {
-	int fd = 0, nbytes = 0, myread = 0;
+	int fd = 0, nbytes = 0, read = 0;
 	OFT* oftp;
 	MINODE* mip;
 	INODE* ip;
@@ -23,14 +23,14 @@ int read_file(char *pathname, char *pathname2)
 	}
 
 	// return(myread(fd, buf, nbytes));
-	myread = myread(fd, buf, nbytes);
+	read = myread(fd, buf, nbytes);
 
-	if (myread < 0) {
+	if (read < 0) {
 		printf("CANT READ FILE\n");
 		return;
 	}
 
-	return myread;
+	return read;
 }
 
 // behaves EXACTLY the same as the read() system call in Unix / Linux.
@@ -39,10 +39,10 @@ int myread(int fd, char *buf, int nbytes)
 { 
 	int count = 0, lbk, blk, avil, offset, startByte, *ip, dblk, remain;
 	OFT* oftp = running->fd[fd]; 
-	MINODE* mip = oftp->inodeptr;
+	MINODE* mip = oftp->mptr;
 
 	offset = oftp->offset;
-	avil = fileSize - offset // number of bytes still available in file.
+	avil = mip->INODE.i_size - offset; // number of bytes still available in file.
 	char* cq = buf;                // cq points at buf[ ]\
 
 	int ibuf[256], buf13[256], dbuf[256], readbuf[BLKSIZE];
@@ -63,7 +63,7 @@ int myread(int fd, char *buf, int nbytes)
 
 		else if (lbk >= 12 && lbk < 256 + 12) { //  indirect blocks 
 			// read INODE.i_block[12] into int ibuf[256];
-			get_block(mip->, mip->INODE.i_block[12], ibuf);
+			get_block(mip->dev, mip->INODE.i_block[12], ibuf);
 			blk = ibuf[lbk - 12];;
 		}
 
