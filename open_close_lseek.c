@@ -8,13 +8,13 @@ int open_file(char *filename, int flags)
 	// 1. ask for a pathname and mode to open:
 
 	// 2. get pathname's inumber:
-	if (pathname[0] == '/') dev = root->dev;          // root INODE's dev
+	if (filename[0] == '/') dev = root->dev;          // root INODE's dev
 	else dev = running->cwd->dev;
-	ino = getino(pathname);
+	ino = getino(dev, filename);
 	if (ino == 0)
 	{
-		creat(filename);
-		ino = getino(filename);
+		creat_file(filename);
+		ino = getino(dev, filename);
 	}
 	// 3. get its Minode pointer
 	mip = iget(dev, ino);
@@ -30,7 +30,7 @@ int open_file(char *filename, int flags)
 	oftp = (OFT*)malloc(sizeof(OFT));
 	oftp->mode = flags;      // mode = 0|1|2|3 for R|W|RW|APPEND 
 	oftp->refCount = 1;
-	oftp->minodePtr = mip;  // point at the file's minode[]
+	oftp->mptr = mip;  // point at the file's minode[]
 
 	// 6. Depending on the open mode 0|1|2|3, set the OFT's offset accordingly:
 	switch (oftp->mode)
@@ -86,6 +86,7 @@ int truncate(MINODE* mip)
 int close_file(int fd)
 {
 	MINODE *mip;
+	OFT *oftp;
 	// 1. verify fd is within range.
 
 	// 2. verify running->fd[fd] is pointing at a OFT entry
@@ -101,7 +102,7 @@ int close_file(int fd)
 	if (oftp->refCount > 0) return 0;
 
 	// last user of this OFT entry ==> dispose of the Minode[]
-	mip = oftp->inodeptr;
+	mip = oftp->mptr;
 	iput(mip);
 
 	return 0;
