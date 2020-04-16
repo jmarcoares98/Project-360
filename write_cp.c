@@ -182,7 +182,6 @@ int mywrite(int fd, char *buf, int nbytes)
 	//mip->dirty = 1;       // mark mip dirty for iput() 
 	//printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
 	//return nbytes;
-}
 
 int cp_file(char* pathname) {
 	// 1. fd = open src for READ;
