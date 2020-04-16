@@ -5,7 +5,7 @@ int write_file()
 	// 1. Preprations:
 	// ask for a fd and a text string to write;
     
-    scanf("What file directory would you like to write to?\n", &fd);
+    scanf("What file directory would you like to write to?\n", &fds);
     scanf("What string would you like to write to it?\n", &str);
     
     int fd = atoi(fds);

@@ -37,15 +37,14 @@ int read_file(char *pathname, char *pathname2)
 // returns the actual number of bytes read
 int myread(int fd, char *buf, int nbytes) 
 { 
-	int count = 0, lbk, blk, avil, offset, startByte, *ip, dblk, remain;
+	int count = 0, lbk, blk, avil, offset, startByte, *ip, dblk, remain, indblk, indoff;
 	OFT* oftp = running->fd[fd]; 
 	MINODE* mip = oftp->mptr;
 
 	offset = oftp->offset;
 	avil = mip->INODE.i_size - offset; // number of bytes still available in file.
 	char* cq = buf;                // cq points at buf[ ]
-
-	int ibuf[256], buf13[256], dbuf[256], readbuf[BLKSIZE];
+	char readbuf[BLKSIZE];
 	
 
 	while (nbytes && avil) {
@@ -63,25 +62,27 @@ int myread(int fd, char *buf, int nbytes)
 
 		else if (lbk >= 12 && lbk < 256 + 12) { //  indirect blocks 
 			// read INODE.i_block[12] into int ibuf[256];
-			get_block(mip->dev, mip->INODE.i_block[12], ibuf);
-			blk = ibuf[lbk - 12];;
+			printf("INDIRECT..\n");
+			get_block(mip->dev, mip->INODE.i_block[12], readbuf);
+			ip = (int*)readbuf + lbk - 12;
+			blk = *ip;
 		}
 
 		else {
-			lbk -= (12 + 256); // lbk count from 0 
-
+			printf("DOUBLE INDIRECT..\n");
 			// 1. get i_block[13] into int buf13[256];  // buf13[ ] = |D0|D1|D2| ...... |
-			get_block(mip->dev, mip->INODE.i_block[13], buf13);
-
+			get_block(mip->dev, mip->INODE.i_block[13], readbuf);
+			indblk = (lbk - 256 - 12) / 256;
+			indblk = (lbk - 256 - 12) % 256;
 			// 2. dblk = buf13[lbk / 256];
-			dblk = buf13[lbk / 256];
+			ip = (int*)readbuf + indblk;
 
-			// 3. get dblk into int dbuf[256];          // dbuf[  ] = |256 block numbers|
-			ip = buf13[dblk];
-			get_block(mip->dev, *ip, dbuf);
+			// 3. get dblk into int dbuf[256];          // dbuf[  ] = |256 block numbers|;
+			get_block(mip->dev, *ip, readbuf);
 
 			// 4. blk = dbuf[lbk % 256];
-			blk = dbuf[lbk % 256];
+			ip = (int*)readbuf + indoff;
+			blk = *ip;
 		}
 
 		/* get the data block into readbuf[BLKSIZE] */
@@ -111,16 +112,26 @@ int myread(int fd, char *buf, int nbytes)
 
 int mycat(char* pathname) {
 	char mybuf[BLKSIZE], dummy = 0;  // a null char at end of mybuf[ ]
-	int n, fd = 0;
+	int n, i = 0, fd = 0;
 
 	// 1. int fd = open filename for READ;
-	fd = open_file(pathname, 0);
+	fd = open_file(pathname, "0");
+
+	if (fd < 0)
+		return;
 
 	// 2. while (n = read(fd, mybuf[1024], 1024)) {
-	while (n = read(fd, mybuf, BLKSIZE)) {
-		mybuf[n] = 0;             // as a null terminated string
-		printf("%s", mybuf);
+	while (n = myread(fd, mybuf, BLKSIZE)) {
+		mybuf[n] = '\0';             // as a null terminated string
+		while (mybuf[i]) {
+			putchar(mybuf[i]);
+			if (mybuf[i] == '\n')
+				putchar('\r');
+
+			i++;
+		}
 	}
+
 	//	spit out chars from mybuf[] but handle \n properly;
 	printf("\n\r");
 

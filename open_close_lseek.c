@@ -2,10 +2,22 @@
 // flags = 0|1|2|3 for READ|WRITE|RDWR|APPEND
 int open_file(char* filename, char* flags)
 {
-	int ino, index, flag;
+	int ino, index, flag = -1;
 	MINODE* mip;
 	OFT* oftp;
 	// 1. ask for a pathname and mode to open:
+	if (strcmp(flags, "0") == 0)
+		flag = 0;
+	else if (strcmp(flags, "1") == 0)
+		flag = 1;
+	else if (strcmp(flags, "2") == 0)
+		flag = 2;
+	else if (strcmp(flags, "3") == 0)
+		flag = 3;
+	else {
+		printf("INVALID!\n");
+		return flag;
+	}
 
 	// 2. get pathname's inumber:
 	if (filename[0] == '/') 
@@ -13,12 +25,14 @@ int open_file(char* filename, char* flags)
 	else 
 		dev = running->cwd->dev;
 
+
 	ino = getino(dev, filename);
 	if (ino == 0)
 	{
-		creat_file(filename);
-		ino = getino(dev, filename);
+		printf("ERROR: No such file!\n");
+		return;
 	}
+
 
 	// 3. get its Minode pointer
 	mip = iget(dev, ino);
@@ -32,7 +46,7 @@ int open_file(char* filename, char* flags)
 
 	// 5. allocate a FREE OpenFileTable (OFT) and fill in values:
 	oftp = (OFT*)malloc(sizeof(OFT));
-	oftp->mode = atoi(flags);      // mode = 0|1|2|3 for R|W|RW|APPEND 
+	oftp->mode = flag;      // mode = 0|1|2|3 for R|W|RW|APPEND 
 	oftp->refCount = 1;
 	oftp->mptr = mip;  // point at the file's minode[]
 
