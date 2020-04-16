@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
 	// WRTIE code here to create P1 as a USER process
 
 	while (1) {
-		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|open|close|lseek|read|write|cat|cp|mv|quit] ");
+		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|open|close|lseek|read|write|cat|cp|mv|pfd|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 
@@ -160,6 +160,8 @@ int main(int argc, char* argv[])
 			mycat(pathname);
 		else if (strcmp(cmd, "cp") == 0)
 			cp_file(pathname, pathname2);
+		else if (strcmp(cmd, "pfd") == 0)
+			pfd();
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
 	}
