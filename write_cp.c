@@ -42,86 +42,60 @@ int write_file()
 
 int mywrite(int fd, char *buf, int nbytes)
 {
-    int count = 0;
-    
-    int lbk, start, blk;
-    
-    int ftp = running->fd[fd];
-    mip - oftp->INODE;
-    
+    int count = 0, lbk, startByte, blk, dblk, remain, ibuf[256], dbuf[256], offset;
+	char* wbuf[BLKSIZE], * cp, * cq = buf;
+
+	OFT* oftp = running->fd[fd];
+	MINODE* mip = oftp->mptr;
+	offset = oftp->offset;
+
     while(nbytes > 0)
     {
-        lbk = oft->offset / BLKSIZE;
-        start = oft->offset % BLKSIZE;
-        
-        if (lblk < 12)
+		// compute LOGICAL BLOCK (lbk) and the startByte in that lbk:
+        lbk = oftp->offset / BLKSIZE;
+        startByte = oftp->offset % BLKSIZE;
+
+		// I only show how to write DIRECT data blocks, you figure out how to 
+		// write indirect and double-indirect blocks.
+        if (lbk < 12)	//direct block
         {
-            if (mip->INODE.i_block[lblk] == 0)
-            {
-                mip->INODE.i_block[lblk] = balloc(mip->dev);
-            }
-            blk = mip->INODE.i_block[lblk];
+            if (mip->INODE.i_block[lbk] == 0) //if no data block yet
+                mip->INODE.i_block[lbk] = balloc(mip->dev);
+            
+            blk = mip->INODE.i_block[lbk];
         }
-        // indirect blocks
-        else if (lblk >= 12 && lblk < 256+12)
-        {
-            if (mip->INODE.i_block[12]==0)
-            {
+        else if (lbk >= 12 && lbk < 256+12){ // indirect blocks
+            if (mip->INODE.i_block[12]==0){
+				// allocate a block for it;
+				// zero out the block on disk !!!!
                 mip->INODE.i_block[12] = balloc(mip->dev);
                 memset(ibuf,0,256);
             }
             get_block(mip->dev, mip->INODE.i_block[12], (char*)ibuf);
-            blk = ibuf[lmlk - 12];
-            if (blk==0)
-            {
-                mip->INODE.i_block[lblk] = balloc(mip->dev);
-                ibuf[lmlk - 12] = mip->INODE.i_block[lblk];
+            blk = ibuf[lbk - 12];
+			// NOTE: you may modify balloc() to zero out the allocated block on disk
+            if (blk==0){
+				// allocate a disk block;
+                mip->INODE.i_block[lbk] = balloc(mip->dev);
+
+				// record it in i_block[12];
+                ibuf[lbk - 12] = mip->INODE.i_block[lbk];
             }
         }
-        // double indirect blocks
-        else
-        {
+        else{   // double indirect blocks
             memset(ibuf, 0, 256);
             get_block(mip->dev, mip->INODE.i_block[13], (char*)dbuf);
-            lblk -= (12 + 256);
-            get_block(mip->dev, dlbk, (char*dbuf));
-            blk = dbuf[lblk % 256];
+            lbk -= (12 + 256);
+			dblk = dbuf[lbk % 256];
+            get_block(mip->dev, dblk, (char*)dbuf);
+            blk = dbuf[lbk % 256];
         }
         
-        memset(writeBuf,0,BLKSIZE);
+        memset(wbuf,0,BLKSIZE);
         //read to buf
-        get_block(mip->dev, blk, writeBuf);
-        cp = writeBuf + start;
-        remain = BLKSIZE - start;
-        
-        if(remain < nbytes)
-           {
-             strncpy(cp, cq, remain);
-             count += remain;
-             nbytes -= remain;
-             running->fd[fd]->offset += remain;
-             //check offset
-             if(running->fd[fd]->offset > mip->INODE.i_size)
-             {
-               mip->INODE.i_size += remain;
-             }
-             remain -= remain;
-           }
-           else
-           {
-             strncpy(cp, cq, nbytes);
-             count += nbytes;
-             remain -= nbytes;
-             running->fd[fd]->offset += nbytes;
-             if(running->fd[fd]->offset > mip->INODE.i_size)
-             {
-               mip->INODE.i_size += nbytes;
-             }
-             nbytes -= nbytes;
-           }
-           put_block(mip->dev, blk, writeBuf);
-           mip->dirty = 1;
-           printf("Wrote %d chars into file.\n", count);
+        get_block(mip->dev, blk, wbuf);
+        cp = wbuf + startByte;
+        remain = BLKSIZE - startByte;
         
         //    /* all cases come to here : write to the data block */
         get_block(mip->dev, blk, wbuf);   // read disk block into wbuf[ ]
@@ -133,13 +107,15 @@ int mywrite(int fd, char *buf, int nbytes)
             *cp++ = *cq++;              // cq points at buf[ ]
             nbytes--; remain--;         // dec counts
             oftp->offset++;             // advance offset
-            if (offset > INODE.i_size)  // especially for RW|APPEND mode
+            if (offset > mip->INODE.i_size)  // especially for RW|APPEND mode
                 mip->INODE.i_size++;    // inc file size (if offset > fileSize)
             if (nbytes <= 0) break;     // if already nbytes, break
         }
         put_block(mip->dev, blk, wbuf);   // write wbuf[ ] to disk
+
+		 // loop back to outer while to write more .... until nbytes are written
     }
-    mip->dirty = 1
+	mip->dirty = 1;
     printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
     return nbytes;
 }
@@ -161,38 +137,38 @@ int cp_file(char* source, char* dest)
 		mywrite(gd, buf, n);  // notice the n in write()
     }
     
-    my_close(fs);
-    my_close(gd);
+    close_file(fs);
+    close_file(gd);
 }
 
-int mv_file(char* source, char* dest)
-{
-    int srcfd = open_file(source, '0');
-	// 1. verify src exists; get its INODE in ==> you already know its dev
-	// 2. check whether src is on the same dev as src
-    if (srcfd == -1)
-    {
-        printf("Wrong answer for file\n");
-        return -1;
-    }
-    
-    MINODE *fmip = running->fd[srcfd]->MINODE;
-	//	CASE 1: same dev :
-	// 3. Hard link dst with src(i.e.same INODE number)
-	// 4. unlink src(i.e.rm src name from its parent directory and reduce INODE's
-	//		link count by 1).
-    if (fmip->dev == fd)
-    {
-        link(source, dest);
-        unlink(source);
-    }
-    else
-    {
-        my_close(srcfd);
-        cp_file(source, dest);
-        unlink(source);
-    }
-	//	CASE 2 : not the same dev :
-	// 3. cp src to dst
-	// 4. unlink src
-}
+//int mv_file(char* source, char* dest)
+//{
+//    int srcfd = open_file(source, '0');
+//	// 1. verify src exists; get its INODE in ==> you already know its dev
+//	// 2. check whether src is on the same dev as src
+//    if (srcfd == -1)
+//    {
+//        printf("Wrong answer for file\n");
+//        return -1;
+//    }
+//    
+//    MINODE *fmip = running->fd[srcfd]->MINODE;
+//	//	CASE 1: same dev :
+//	// 3. Hard link dst with src(i.e.same INODE number)
+//	// 4. unlink src(i.e.rm src name from its parent directory and reduce INODE's
+//	//		link count by 1).
+//    if (fmip->dev == fd)
+//    {
+//        link(source, dest);
+//        unlink(source);
+//    }
+//    else
+//    {
+//        my_close(srcfd);
+//        cp_file(source, dest);
+//        unlink(source);
+//    }
+//	//	CASE 2 : not the same dev :
+//	// 3. cp src to dst
+//	// 4. unlink src
+//}

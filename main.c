@@ -160,8 +160,6 @@ int main(int argc, char* argv[])
 			mycat(pathname);
 		else if (strcmp(cmd, "cp") == 0)
 			cp_file(pathname, pathname2);
-		else if (strcmp(cmd, "mv") == 0)
-			mv_file(pathname, pathname2);
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
 	}

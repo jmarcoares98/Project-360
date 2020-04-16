@@ -43,7 +43,7 @@ int myread(int fd, char *buf, int nbytes)
 
 	offset = oftp->offset;
 	avil = mip->INODE.i_size - offset; // number of bytes still available in file.
-	char* cq = buf;                // cq points at buf[ ]\
+	char* cq = buf;                // cq points at buf[ ]
 
 	int ibuf[256], buf13[256], dbuf[256], readbuf[BLKSIZE];
 	
