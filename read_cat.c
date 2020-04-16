@@ -120,8 +120,8 @@ int mycat(char* pathname) {
 	while (n = read(fd, mybuf, BLKSIZE)) {
 		mybuf[n] = 0;             // as a null terminated string
 		printf("%s", mybuf);
-	//	spit out chars from mybuf[] but handle \n properly;
 	}
+	//	spit out chars from mybuf[] but handle \n properly;
 	printf("\n\r");
 
 	// 3. close(fd);
