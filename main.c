@@ -33,6 +33,9 @@ char buf[BLKSIZE];
 #include "rmdir.c"
 #include "link_unlink.c"
 #include "symlink.c"
+#include "open_close_lseek.c"
+#include "read_cat.c"
+#include "write_cp.c"
 
 int init()
 {
@@ -115,7 +118,7 @@ int main(int argc, char* argv[])
 	// WRTIE code here to create P1 as a USER process
 
 	while (1) {
-		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|quit] ");
+		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|open|close|lseek|read|write|cat|cp|mv|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 
@@ -143,6 +146,22 @@ int main(int argc, char* argv[])
 			unlink(pathname);
 		else if (strcmp(cmd, "symlink") == 0)
 			symlink(pathname, pathname2);
+		else if (strcmp(cmd, "open") == 0)
+			open_file(pathname, atoi(pathname2));
+		else if (strcmp(cmd, "close") == 0)
+			close_file(atoi(pathname));
+		else if (strcmp(cmd, "lseek") == 0)
+			lseek(pathname, pathname2);
+		else if (strcmp(cmd, "read") == 0)
+			read_file(pathname, pathname2);
+		else if (strcmp(cmd, "write") == 0)
+			write_file(pathname);
+		else if (strcmp(cmd, "cat") == 0)
+			mycat(pathname);
+		else if (strcmp(cmd, "cp") == 0)
+			cp_file(pathname);
+		else if (strcmp(cmd, "mv") == 0)
+			mv_file(pathname);
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
 	}

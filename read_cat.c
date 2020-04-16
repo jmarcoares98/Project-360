@@ -1,91 +1,129 @@
-int read_file(char *pathname) 
+int read_file(char *pathname, char *pathname2) 
 {
-	int fd;
-	// 1. Assume that fd is opened for READ.
+	int fd = 0, nbytes = 0, myread = 0;
+	OFT* oftp;
+	MINODE* mip;
+	INODE* ip;
 
-	// 2. The offset in the OFT points to the current byte position in the file from
-	//	  where we wish to read nbytes.
+	// ask for a fd  and  nbytes to read;
+	fd = atoi(pathname);
+	nbytes = atoi(pathname2);
+	char buf[nbytes + 1];
 
-	// 3. To the kernel, a file is just a sequence of contiguous bytes, numbered from
-	// 0 to file_size - 1. As the figure shows, the current byte position, offset
-	// falls in a LOGICAL block(lbk), which is
+	// verify that fd is indeed opened for RD or RW;
+	if (strcmp(pathname, "") == 0) {
+		printf("NO FD\n");
+		return;
+	}
 
-	// the byte to start read in that logical block is 
-	// start = offset % BLKSIZE
+	// verify that there is indeed bytes;
+	if (strcmp(pathname2, "") == 0) {
+		printf("NO BYTE\n");
+		return;
+	}
 
-	// and the number of bytes remaining in the logical block is 
-	// remain = BLKSIZE - start.
+	// return(myread(fd, buf, nbytes));
+	myread = myread(fd, buf, nbytes);
 
-	// At this moment, the file has 
-	// avil = file_size - offset
+	if (myread < 0) {
+		printf("CANT READ FILE\n");
+		return;
+	}
 
-	// 4. myread() 
-	// return (myread(fd, buf, nbytes));
+	return myread;
 }
 
 // behaves EXACTLY the same as the read() system call in Unix / Linux.
 // returns the actual number of bytes read
 int myread(int fd, char *buf, int nbytes) 
 { 
-	int count = 0;
-	// offset = OFT.offset;
-	// avil = fileSize - offset // number of bytes still available in file.
-	char* cq = buf;                // cq points at buf[ ]
+	int count = 0, lbk, blk, avil, offset, startByte, *ip, dblk, remain;
+	OFT* oftp = running->fd[fd]; 
+	MINODE* mip = oftp->inodeptr;
 
-	//while (nbytes && avil) {
+	offset = oftp->offset;
+	avil = fileSize - offset // number of bytes still available in file.
+	char* cq = buf;                // cq points at buf[ ]\
 
-	//	Compute LOGICAL BLOCK number lbkand startByte in that block from offset;
+	int ibuf[256], buf13[256], dbuf[256], readbuf[BLKSIZE];
+	
 
-	//	lbk = oftp->offset / BLKSIZE;
-	//	startByte = oftp->offset % BLKSIZE;
+	while (nbytes && avil) {
 
-	//	// I only show how to read DIRECT BLOCKS. YOU do INDIRECT and D_INDIRECT
+		//	Compute LOGICAL BLOCK number lbkand startByte in that block from offset;
 
-	//	if (lbk < 12) {                     // lbk is a direct block
-	//		blk = mip->INODE.i_block[lbk]; // map LOGICAL lbk to PHYSICAL blk
-	//	}
-	//	else if (lbk >= 12 && lbk < 256 + 12) {
-	//		//  indirect blocks 
-	//	}
-	//	else {
-	//		//  double indirect blocks
-	//	}
+		lbk = offset / BLKSIZE;
+		startByte = offset % BLKSIZE;
 
-	//	/* get the data block into readbuf[BLKSIZE] */
-	//	get_block(mip->dev, blk, readbuf);
+		// I only show how to read DIRECT BLOCKS. YOU do INDIRECT and D_INDIRECT
 
-	//	/* copy from startByte to buf[ ], at most remain bytes in this block */
-	//	char* cp = readbuf + startByte;
-	//	remain = BLKSIZE - startByte;   // number of bytes remain in readbuf[]
+		if (lbk < 12) {                     // lbk is a direct block
+			blk = mip->INODE.i_block[lbk]; // map LOGICAL lbk to PHYSICAL blk
+		}
 
-	//	while (remain > 0) {
-	//		*cq++ = *cp++;             // copy byte from readbuf[] into buf[]
-	//		oftp->offset++;           // advance offset 
-	//		count++;                  // inc count as number of bytes read
-	//		avil--; nbytes--;  remain--;
-	//		if (nbytes <= 0 || avil <= 0)
-	//			break;
-	//	}
+		else if (lbk >= 12 && lbk < 256 + 12) { //  indirect blocks 
+			// read INODE.i_block[12] into int ibuf[256];
+			get_block(mip->, mip->INODE.i_block[12], ibuf);
+			blk = ibuf[lbk - 12];;
+		}
+
+		else {
+			lbk -= (12 + 256); // lbk count from 0 
+
+			// 1. get i_block[13] into int buf13[256];  // buf13[ ] = |D0|D1|D2| ...... |
+			get_block(mip->dev, mip->INODE.i_block[13], buf13);
+
+			// 2. dblk = buf13[lbk / 256];
+			dblk = buf13[lbk / 256];
+
+			// 3. get dblk into int dbuf[256];          // dbuf[  ] = |256 block numbers|
+			ip = buf13[dblk];
+			get_block(mip->dev, *ip, dbuf);
+
+			// 4. blk = dbuf[lbk % 256];
+			blk = dbuf[lbk % 256];
+		}
+
+		/* get the data block into readbuf[BLKSIZE] */
+		get_block(mip->dev, blk, readbuf);
+
+		/* copy from startByte to buf[ ], at most remain bytes in this block */
+		char* cp = readbuf + startByte;
+		remain = BLKSIZE - startByte;   // number of bytes remain in readbuf[]
+
+		while (remain > 0) {
+			*cq++ = *cp++;             // copy byte from readbuf[] into buf[]
+			oftp->offset++;           // advance offset 
+			count++;                  // inc count as number of bytes read
+			avil--; nbytes--;  
+			remain--;
+			if (nbytes <= 0 || avil <= 0)
+				break;
+		}
 
 	//	// if one data block is not enough, loop back to OUTER while for more ...
 
-	//}
+	}
 
-	// printf("myread: read %d char from file descriptor %d\n", count, fd);
-	// return count;   // count is the actual number of bytes read
+	 printf("myread: read %d char from file descriptor %d\n", count, fd);
+	 return count;   // count is the actual number of bytes read
 }
 
 int mycat(char* pathname) {
-	//char mybuf[1024], dummy = 0;  // a null char at end of mybuf[ ]
-	//int n;
+	char mybuf[BLKSIZE], dummy = 0;  // a null char at end of mybuf[ ]
+	int n, fd = 0;
 
 	// 1. int fd = open filename for READ;
+	fd = open_file(pathname, 0);
 
 	// 2. while (n = read(fd, mybuf[1024], 1024)) {
-	//	mybuf[n] = 0;             // as a null terminated string
-	//	// printf("%s", mybuf);   <=== THIS works but not good
+	while (n = read(fd, mybuf, BLKSIZE)) {
+		mybuf[n] = 0;             // as a null terminated string
+		printf("%s", mybuf);
+	}
 	//	spit out chars from mybuf[] but handle \n properly;
-	//}
+	printf("\n\r");
 
 	// 3. close(fd);
+	close_file(fd);
 }
