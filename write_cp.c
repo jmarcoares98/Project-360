@@ -31,7 +31,7 @@ int write_file()
     
 	// 3. copy the text string into a buf[] and get its length as nbytes.
     
-    char new_buf[];
+    char new_buf[BLKSIZE];
     
     strcpy(fds, new_buf);
     
@@ -46,7 +46,7 @@ int mywrite(int fd, char *buf, int nbytes)
     
     int lbk, start, blk;
     
-    oftp = running->fd[fd];
+    int ftp = running->fd[fd];
     mip - oftp->INODE;
     
     while(nbytes > 0)
@@ -141,7 +141,7 @@ int mywrite(int fd, char *buf, int nbytes)
     }
     mip->dirty = 1
     printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
-    return nbytes
+    return nbytes;
 }
 
 int cp_file(char* source, char* dest)
@@ -156,7 +156,7 @@ int cp_file(char* source, char* dest)
     char buf[BLKSIZE];
     int n;
 
-	while (n = read(fs, buf[], BLKSIZE))
+	while (n = read(fs, buf, BLKSIZE))
     {
 		mywrite(gd, buf, n);  // notice the n in write()
     }
@@ -176,7 +176,7 @@ int mv_file(char* source, char* dest)
         return -1;
     }
     
-    MINODE *fmip = running->fd[srfd]->MINODE;
+    MINODE *fmip = running->fd[srcfd]->MINODE;
 	//	CASE 1: same dev :
 	// 3. Hard link dst with src(i.e.same INODE number)
 	// 4. unlink src(i.e.rm src name from its parent directory and reduce INODE's
