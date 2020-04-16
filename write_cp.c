@@ -183,29 +183,54 @@ int mywrite(int fd, char *buf, int nbytes)
 	//printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
 	//return nbytes;
 
-int cp_file(char* pathname) {
+int cp_file(char* source, char* dest)
+{
 	// 1. fd = open src for READ;
-
+    int fs = open_file(source, '0');
 	// 2. gd = open dst for WR | CREAT;
-
+    int gd = open_file(dest, '1');
 	// NOTE:In the project, you may have to creat the dst file first, then open it
 	// for WR, OR  if open fails due to no file yet, creat itand then open it
 	// for WR.
+    char buf[BLKSIZE];
+    int n;
 
-	// 3. while (n = read(fd, buf[], BLKSIZE)) {
-	//	write(gd, buf, n);  // notice the n in write()
-	// }
+	while (n = read(fs, buf[], BLKSIZE))
+    {
+		mywrite(gd, buf, n);  // notice the n in write()
+    }
+    
+    my_close(fs);
+    my_close(gd);
 }
 
-int mv_file(char* pathname) {
+int mv_file(char* source, char* dest)
+{
+    int srcfd = open_file(source, '0');
 	// 1. verify src exists; get its INODE in ==> you already know its dev
 	// 2. check whether src is on the same dev as src
-
+    if (srcfd == -1)
+    {
+        printf("Wrong answer for file\n");
+        return -1;
+    }
+    
+    MINODE *fmip = running->fd[srfd]->MINODE;
 	//	CASE 1: same dev :
 	// 3. Hard link dst with src(i.e.same INODE number)
 	// 4. unlink src(i.e.rm src name from its parent directory and reduce INODE's
 	//		link count by 1).
-
+    if (fmip->dev == fd)
+    {
+        link(source, dest);
+        unlink(source);
+    }
+    else
+    {
+        my_close(srcfd);
+        cp_file(source, dest);
+        unlink(source);
+    }
 	//	CASE 2 : not the same dev :
 	// 3. cp src to dst
 	// 4. unlink src
