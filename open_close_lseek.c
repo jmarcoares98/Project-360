@@ -1,21 +1,25 @@
 // opens a file for read or write
 // flags = 0|1|2|3 for READ|WRITE|RDWR|APPEND
-int open_file(char *filename, int flags)
+int open_file(char* filename, int flags)
 {
 	int ino, index, flag;
-	MINODE *mip;
-	OFT *oftp;
+	MINODE* mip;
+	OFT* oftp;
 	// 1. ask for a pathname and mode to open:
 
 	// 2. get pathname's inumber:
-	if (filename[0] == '/') dev = root->dev;          // root INODE's dev
-	else dev = running->cwd->dev;
+	if (filename[0] == '/') 
+		dev = root->dev;          // root INODE's dev
+	else 
+		dev = running->cwd->dev;
+
 	ino = getino(dev, filename);
 	if (ino == 0)
 	{
 		creat_file(filename);
 		ino = getino(dev, filename);
 	}
+
 	// 3. get its Minode pointer
 	mip = iget(dev, ino);
 
@@ -33,8 +37,7 @@ int open_file(char *filename, int flags)
 	oftp->mptr = mip;  // point at the file's minode[]
 
 	// 6. Depending on the open mode 0|1|2|3, set the OFT's offset accordingly:
-	switch (oftp->mode)
-	{
+	switch (oftp->mode){
 	case 0:
 		oftp->offset = 0;     // R: offset = 0
 		break;
@@ -52,6 +55,7 @@ int open_file(char *filename, int flags)
 		printf("invalid mode\n");
 		return(-1);
 	}
+
 	// 7. find the SMALLEST i in running PROC's fd[ ] such that fd[i] is NULL
 	int i;
 	for (i = 0; i < 10; i++)
@@ -61,10 +65,13 @@ int open_file(char *filename, int flags)
 	}
 	index = i;
 	printf("fd[i] = %d\n", index);
+
 	// Let running->fd[i] point at the OFT entry
 	running->fd[index] = oftp;
+
 	// 8. update INODE's time field; R: touch atime, W|RW|APPEND: touch atime and mtime
 	mip->dirty = 1;
+
 	// 9. return index as the file descriptor
 	return index;
 }
