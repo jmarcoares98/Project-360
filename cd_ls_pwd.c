@@ -27,48 +27,7 @@ int chdir(char* pathname)
 }
 
 /************* ls **************/
-int ls_file(MINODE* mip, char* name)
-{
-	int r, i;
-	char ftime[64], fname[64], t1[64], t2[64];
-
-	// from lab4
-	if ((mip->INODE.i_mode & 0xF000) == 0x8000) // if (S_ISREG())
-	{
-		printf("%c", '-');
-	}
-
-	else if ((mip->INODE.i_mode & 0xF000) == 0x4000) // if (S_ISDIR())
-	{
-		printf("%c", 'd');
-	}
-
-	else if ((mip->INODE.i_mode & 0xF000) == 0xA000) // if (S_ISLNK())
-	{
-		printf("%c", 'l');
-	}
-
-	for (i = 8; i >= 0; i--)
-	{
-		if (mip->INODE.i_mode & (1 << i)) // print r|w|x
-			printf("%c", t1[i]);
-		else
-			printf("%c", t2[i]); // or print -
-	}
-
-	printf("%s ", ftime); // print name
-	printf("%s", basename(fname)); // print file basename // print -> linkname if symbolic file
-
-	if ((mip->INODE.i_mode & 0xF000) == 0xA000)
-	{
-		char* linkname = "";
-		r = readlink(fname, linkname, 16);
-		printf(" -> %s", linkname);
-	}
-	printf("\n");
-}
-
-int ls_dir(MINODE* mip)
+int ls_file(MINODE* mip)
 {
 	char temp[256];
 	char* cp;
@@ -87,7 +46,17 @@ int ls_dir(MINODE* mip)
 		strncpy(temp, dp->name, dp->name_len);
 		temp[dp->name_len] = 0;
 
-		printf("%4d %4d %4d %s\n", dp->inode, dp->rec_len, dp->name_len, temp); // print [inode# name]
+		printf("%4d %4d %4d	%s", dp->inode, dp->rec_len, dp->name_len, temp); // print [inode# name]
+		
+		mipp = iget(running->cwd->dev, dp->inode);
+		if ((mipp->INODE.i_mode) == 0xA000)
+		{
+			printf(" -> %s", mipp->INODE.i_block);
+		}
+
+		cp += dp->rec_len;
+		dp = (DIR*)cp;
+		printf("\n");
 
 		cp += dp->rec_len;
 		dp = (DIR*)cp;
@@ -122,7 +91,7 @@ int ls(char* pathname)
 			if (token == NULL)
 			{
 				chdir(temp_dir[i - 1]);
-				ls_dir(running->cwd);
+				ls_file(running->cwd);
 				chdir("..");
 			}
 		}
@@ -130,7 +99,7 @@ int ls(char* pathname)
 	else
 	{
 		printf("else\n");
-		ls_dir(running->cwd);
+		ls_file(running->cwd);
 	}
 }
 
