@@ -37,7 +37,6 @@ void symlink(char *oldName, char *newName)
 	// (6).swrite the INODE of / x / y / z back to disk.
 	iput(mip);
 	iput(new_mip);
-	return 0;
 }
 
 // reads the target fileName of a symbolic file and returns the contents
