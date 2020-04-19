@@ -32,8 +32,8 @@ int ls_file(MINODE* mip)
 	char temp[256];
 	char* cp;
 	DIR* dp;
+	MINODE* mipp;
 	char buf[BLKSIZE];
-
 	memset(buf, 0, 1024);
 
 	// Assume DIR has only one data block i_block[0]
@@ -57,9 +57,6 @@ int ls_file(MINODE* mip)
 		cp += dp->rec_len;
 		dp = (DIR*)cp;
 		printf("\n");
-
-		cp += dp->rec_len;
-		dp = (DIR*)cp;
 	}
 	printf("\n");
 }
