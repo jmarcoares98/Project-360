@@ -33,6 +33,7 @@ int ls_file(MINODE* mip)
 	char* cp;
 	DIR* dp;
 	char buf[BLKSIZE];
+	MINODE* mipp;
 
 	memset(buf, 0, 1024);
 
@@ -57,9 +58,6 @@ int ls_file(MINODE* mip)
 		cp += dp->rec_len;
 		dp = (DIR*)cp;
 		printf("\n");
-
-		cp += dp->rec_len;
-		dp = (DIR*)cp;
 	}
 	printf("\n");
 }

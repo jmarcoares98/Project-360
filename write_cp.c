@@ -59,6 +59,7 @@ int mywrite(int fd, char *buf, int nbytes)
 		// write indirect and double-indirect blocks.
         if (lbk < 12)	//direct block
         {
+			printf("DIRECT...\n");
             if (mip->INODE.i_block[lbk] == 0) //if no data block yet
                 mip->INODE.i_block[lbk] = balloc(mip->dev);
             
@@ -66,6 +67,7 @@ int mywrite(int fd, char *buf, int nbytes)
         }
         else if (lbk >= 12 && lbk < 256+12){ // indirect blocks
             if (mip->INODE.i_block[12]==0){
+				printf("INDIRECT...\n");
 				// allocate a block for it;
 				// zero out the block on disk !!!!
                 mip->INODE.i_block[12] = balloc(mip->dev);
@@ -83,6 +85,7 @@ int mywrite(int fd, char *buf, int nbytes)
             }
         }
         else{   // double indirect blocks
+			printf("DOUBLE INDIRECT...\n");
             memset(ibuf, 0, 256);
             get_block(mip->dev, mip->INODE.i_block[13], (char*)dbuf);
             lbk -= (12 + 256);
@@ -122,23 +125,52 @@ int mywrite(int fd, char *buf, int nbytes)
 
 int cp_file(char* source, char* dest)
 {
+	
 	// 1. fd = open src for READ;
-	int fs = open_file(source, 0);
+	int fs = open_file(source, "0");
 	// 2. gd = open dst for WR | CREAT;
-	int gd = open_file(dest, 1);
+	int gd = open_file(dest, "1");
 	// NOTE:In the project, you may have to creat the dst file first, then open it
-	// for WR, OR  if open fails due to no file yet, creat itand then open it
+	// for WR, OR  if open fails due to no file yet, creat it and then open it
 	// for WR.
     char buf[BLKSIZE];
     int n;
 
-	while (n = read(fs, buf, BLKSIZE))
+	while (n = myread(fs, buf, BLKSIZE))
     {
 		mywrite(gd, buf, n);  // notice the n in write()
     }
     
    my_close(fs);
    my_close(gd);
+}
+
+// checks for tcp if file exists
+int check_file(char *path)
+{
+	int ino;
+	MINODE* tip;
+	char pathname[128];
+	strcpy(pathname, path);
+
+	ino = getino(running->cwd, pathname);
+
+	if (ino != 0) {		// the file exists
+		printf("FILE EXISTS...\n");
+
+		tip = iget(dev, ino);
+		tip->INODE.i_mtime = time(0L);
+		tip->dirty = 1;
+
+		iput(tip);
+		return;
+	}
+	else {		//file does not exist and we call creat to create file
+		printf("CREATING FILE %s...\n", pathname);
+		create_file(pathname);
+	}
+
+	return;
 }
 
 //int mv_file(char* source, char* dest)

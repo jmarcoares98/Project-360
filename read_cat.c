@@ -57,6 +57,7 @@ int myread(int fd, char *buf, int nbytes)
 		// I only show how to read DIRECT BLOCKS. YOU do INDIRECT and D_INDIRECT
 
 		if (lbk < 12) {                     // lbk is a direct block
+			printf("DIRECT...\n");
 			blk = mip->INODE.i_block[lbk]; // map LOGICAL lbk to PHYSICAL blk
 		}
 
