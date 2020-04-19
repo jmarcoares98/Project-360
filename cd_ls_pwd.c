@@ -32,9 +32,13 @@ int ls_file(MINODE* mip)
 	char temp[256];
 	char* cp;
 	DIR* dp;
+	MINODE* mipp;
 	char buf[BLKSIZE];
+<<<<<<< HEAD
 	MINODE* mipp;
 
+=======
+>>>>>>> f3a739f976410ebedd2652878c4819273295e760
 	memset(buf, 0, 1024);
 
 	// Assume DIR has only one data block i_block[0]
