@@ -125,16 +125,18 @@ int mywrite(int fd, char *buf, int nbytes)
 
 int cp_file(char* source, char* dest)
 {
-	
-	// 1. fd = open src for READ;
-	int fs = open_file(source, "0");
-	// 2. gd = open dst for WR | CREAT;
-	int gd = open_file(dest, "1");
+	char buf[BLKSIZE];
+	int n, fs, gd;
 	// NOTE:In the project, you may have to creat the dst file first, then open it
 	// for WR, OR  if open fails due to no file yet, creat it and then open it
 	// for WR.
-    char buf[BLKSIZE];
-    int n;
+	check_file(dest);
+
+	// 1. fd = open src for READ;
+	fs = open_file(source, "0");
+
+	// 2. gd = open dst for WR | CREAT;
+	gd = open_file(dest, "1");
 
 	while (n = myread(fs, buf, BLKSIZE))
     {
