@@ -46,7 +46,6 @@ int myread(int fd, char *buf, int nbytes)
 	char* cq = buf;                // cq points at buf[ ]
 	char readbuf[BLKSIZE];
 	
-
 	while (nbytes && avil) {
 
 		//	Compute LOGICAL BLOCK number lbkand startByte in that block from offset;
@@ -74,7 +73,8 @@ int myread(int fd, char *buf, int nbytes)
 			// 1. get i_block[13] into int buf13[256];  // buf13[ ] = |D0|D1|D2| ...... |
 			get_block(mip->dev, mip->INODE.i_block[13], readbuf);
 			indblk = (lbk - 256 - 12) / 256;
-			indblk = (lbk - 256 - 12) % 256;
+			indoff = (lbk - 256 - 12) % 256;
+
 			// 2. dblk = buf13[lbk / 256];
 			ip = (int*)readbuf + indblk;
 
@@ -113,7 +113,7 @@ int myread(int fd, char *buf, int nbytes)
 
 int mycat(char* pathname) {
 	char mybuf[BLKSIZE], dummy = 0;  // a null char at end of mybuf[ ]
-	int n, i = 0, fd = 0;
+	int n, i, fd = 0;
 
 	// 1. int fd = open filename for READ;
 	fd = open_file(pathname, "0");
@@ -123,6 +123,7 @@ int mycat(char* pathname) {
 
 	// 2. while (n = read(fd, mybuf[1024], 1024)) {
 	while (n = myread(fd, mybuf, BLKSIZE)) {
+		i = 0;
 		mybuf[n] = '\0';             // as a null terminated string
 		while (mybuf[i]) {
 			putchar(mybuf[i]);

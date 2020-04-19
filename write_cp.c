@@ -42,69 +42,106 @@ int write_file()
 
 int mywrite(int fd, char *buf, int nbytes)
 {
-    int count = 0, lbk, startByte, blk, dblk, remain, ibuf[256], dbuf[256], offset;
-	char* wbuf[BLKSIZE], * cp, * cq = buf;
-
+	int count = 0, lbk, blk, avil, offset, startByte, * ip, dblk, remain, indblk, indoff;
 	OFT* oftp = running->fd[fd];
 	MINODE* mip = oftp->mptr;
+
 	offset = oftp->offset;
+	avil = mip->INODE.i_size - offset; // number of bytes still available in file.
+	char* cq = buf, * cp;                // cq points at buf[ ]
+	char writebuf[BLKSIZE];
 
     while(nbytes > 0)
     {
 		// compute LOGICAL BLOCK (lbk) and the startByte in that lbk:
-        lbk = oftp->offset / BLKSIZE;
-        startByte = oftp->offset % BLKSIZE;
+        lbk = offset/ BLKSIZE;
+        startByte = offset % BLKSIZE;
 
 		// I only show how to write DIRECT data blocks, you figure out how to 
 		// write indirect and double-indirect blocks.
         if (lbk < 12)	//direct block
         {
 			printf("DIRECT...\n");
+
             if (mip->INODE.i_block[lbk] == 0) //if no data block yet
                 mip->INODE.i_block[lbk] = balloc(mip->dev);
             
             blk = mip->INODE.i_block[lbk];
         }
         else if (lbk >= 12 && lbk < 256+12){ // indirect blocks
+			printf("INDIRECT...\n");
             if (mip->INODE.i_block[12]==0){
-				printf("INDIRECT...\n");
 				// allocate a block for it;
 				// zero out the block on disk !!!!
                 mip->INODE.i_block[12] = balloc(mip->dev);
-                memset(ibuf,0,256);
+				get_block(mip->dev, mip->INODE.i_block[12], writebuf);
+
+				for (int i = 0; i < BLKSIZE; i++)
+					writebuf[i] = 0;
+
+				put_block(mip->dev, mip->INODE.i_block[12], writebuf);
             }
-            get_block(mip->dev, mip->INODE.i_block[12], (char*)ibuf);
-            blk = ibuf[lbk - 12];
+            get_block(mip->dev, mip->INODE.i_block[12], writebuf);
+
+			ip = (int*)writebuf + lbk - 12;
+            blk = *ip;
+
 			// NOTE: you may modify balloc() to zero out the allocated block on disk
             if (blk==0){
 				// allocate a disk block;
-                mip->INODE.i_block[lbk] = balloc(mip->dev);
+                *ip = balloc(mip->dev);
 
-				// record it in i_block[12];
-                ibuf[lbk - 12] = mip->INODE.i_block[lbk];
+                blk = *ip;
             }
         }
         else{   // double indirect blocks
 			printf("DOUBLE INDIRECT...\n");
-            memset(ibuf, 0, 256);
-            get_block(mip->dev, mip->INODE.i_block[13], (char*)dbuf);
-            lbk -= (12 + 256);
-			dblk = dbuf[lbk % 256];
-            get_block(mip->dev, dblk, (char*)dbuf);
-            blk = dbuf[lbk % 256];
+			if (mip->INODE.i_block[13] == 0) {
+				// allocate a block for it;
+				// zero out the block on disk !!!!
+				mip->INODE.i_block[12] = balloc(mip->dev);
+				get_block(mip->dev, mip->INODE.i_block[13], writebuf);
+
+				for (int i = 0; i < BLKSIZE; i++)
+					writebuf[i] = 0;
+
+				put_block(mip->dev, mip->INODE.i_block[13], writebuf);
+			}
+            get_block(mip->dev, mip->INODE.i_block[13], writebuf);
+            indblk = (lbk - 12 + 256) / 256;
+			indoff = (lbk -256 -12) % 256;
+
+			ip = (int*)writebuf + indblk;
+			blk = *ip;
+
+			if (!blk){
+				ip = balloc(mip->dev);
+				blk = *ip;
+				get_block(mip->dev, blk, writebuf);
+
+				for (int i = 0; i < BLKSIZE; i++)
+					writebuf[i] = 0;
+
+				put_block(mip->dev, blk, writebuf);
+			}
+            get_block(mip->dev, blk, (char*)dbuf);
+
+			ip = (int*)writebuf + indoff;
+            blk = *ip;
+
+
+			if (!blk) {
+				ip = balloc(mip->dev);
+				blk = *ip;
+
+				put_block(mip->dev, blk, writebuf);
+			}
         }
         
-        memset(wbuf,0,BLKSIZE);
-        //read to buf
-        get_block(mip->dev, blk, wbuf);
-        cp = wbuf + startByte;
-        remain = BLKSIZE - startByte;
-        
         //    /* all cases come to here : write to the data block */
-        get_block(mip->dev, blk, wbuf);   // read disk block into wbuf[ ]
-        char* cp = wbuf + startByte;      // cp points at startByte in wbuf[]
+        get_block(mip->dev, blk, writebuf);   // read disk block into wbuf[ ]
+        cp = writebuf + startByte;      // cp points at startByte in wbuf[]
         remain = BLKSIZE - startByte;     // number of BYTEs remain in this block
-        char* cq = buf;
 
         while (remain > 0) {               // write as much as remain allows
             *cp++ = *cq++;              // cq points at buf[ ]
@@ -169,7 +206,7 @@ int check_file(char *path)
 	}
 	else {		//file does not exist and we call creat to create file
 		printf("CREATING FILE %s...\n", pathname);
-		create_file(pathname);
+		creat_file(pathname);
 	}
 
 	return;

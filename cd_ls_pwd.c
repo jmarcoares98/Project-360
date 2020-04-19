@@ -34,7 +34,6 @@ int ls_file(MINODE* mip)
 	DIR* dp;
 	MINODE* mipp;
 	char buf[BLKSIZE];
-	MINODE* mipp;
 
 	memset(buf, 0, 1024);
 
