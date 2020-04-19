@@ -34,6 +34,7 @@ int ls_file(MINODE* mip)
 	DIR* dp;
 	MINODE* mipp;
 	char buf[BLKSIZE];
+	int size;
 
 	memset(buf, 0, 1024);
 
@@ -46,8 +47,8 @@ int ls_file(MINODE* mip)
 		memset(temp, 0, 256);
 		strncpy(temp, dp->name, dp->name_len);
 		temp[dp->name_len] = 0;
-
-		printf("%4d %4d %4d	%s", dp->inode, dp->rec_len, dp->name_len, temp); // print [inode# name]
+		size = getFilesize(dp->name);
+		printf("%4d %4d %4d %4d	%s", dp->inode, dp->rec_len, dp->name_len, size, temp); // print [inode# name]
 		
 		mipp = iget(running->cwd->dev, dp->inode);
 		if ((mipp->INODE.i_mode) == 0xA000)
@@ -60,6 +61,18 @@ int ls_file(MINODE* mip)
 		printf("\n");
 	}
 	printf("\n");
+}
+
+/**
+ * Get the size of a file.
+ * @return The filesize, or 0 if the file does not exist.
+ */
+int getFilesize(const char* filename) {
+	struct stat st;
+	if (stat(filename, &st) != 0) {
+		return 0;
+	}
+	return st.st_size;
 }
 
 // ALGORITHM OF LS

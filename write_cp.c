@@ -53,6 +53,7 @@ int mywrite(int fd, char *buf, int nbytes)
 
     while(nbytes > 0)
     {
+		printf("test\n");
 		// compute LOGICAL BLOCK (lbk) and the startByte in that lbk:
         lbk = offset/ BLKSIZE;
         startByte = offset % BLKSIZE;
@@ -124,7 +125,7 @@ int mywrite(int fd, char *buf, int nbytes)
 
 				put_block(mip->dev, blk, writebuf);
 			}
-            get_block(mip->dev, blk, (char*)dbuf);
+            get_block(mip->dev, blk, writebuf);
 
 			ip = (int*)writebuf + indoff;
             blk = *ip;
@@ -151,7 +152,7 @@ int mywrite(int fd, char *buf, int nbytes)
                 mip->INODE.i_size++;    // inc file size (if offset > fileSize)
             if (nbytes <= 0) break;     // if already nbytes, break
         }
-        put_block(mip->dev, blk, wbuf);   // write wbuf[ ] to disk
+        put_block(mip->dev, blk, writebuf);   // write wbuf[ ] to disk
 
 		 // loop back to outer while to write more .... until nbytes are written
     }
@@ -163,7 +164,7 @@ int mywrite(int fd, char *buf, int nbytes)
 int cp_file(char* source, char* dest)
 {
 	char buf[BLKSIZE];
-	int n, fs, gd;
+	int n = 0, fs = 0, gd = 0;
 	// NOTE:In the project, you may have to creat the dst file first, then open it
 	// for WR, OR  if open fails due to no file yet, creat it and then open it
 	// for WR.

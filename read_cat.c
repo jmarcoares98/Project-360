@@ -48,7 +48,7 @@ int myread(int fd, char *buf, int nbytes)
 	
 	while (nbytes && avil) {
 
-		//	Compute LOGICAL BLOCK number lbkand startByte in that block from offset;
+		//	Compute LOGICAL BLOCK number lbk and startByte in that block from offset;
 
 		lbk = offset / BLKSIZE;
 		startByte = offset % BLKSIZE;
