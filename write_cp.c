@@ -42,14 +42,15 @@ int write_file()
 
 int mywrite(int fd, char *buf, int nbytes)
 {
-	int count = 0, lbk, blk, offset, startByte, dblk, remain, indblk, indoff, i = 0, *tip, b;
+	int count = 0, lbk, blk, offset, startByte, remain, indblk, indoff, allocBlk;
+	int* tip;
 	OFT* oftp = running->fd[fd];
 	MINODE* mip = oftp->mptr;
 	INODE* ip = &mip->INODE;
 
 	offset = oftp->offset;
 	char* cq = buf, * cp;                // cq points at buf[ ]
-	char wbuf[BLKSIZE];
+	char writebuf[BLKSIZE];
 
     while(nbytes > 0)
     {
@@ -57,90 +58,81 @@ int mywrite(int fd, char *buf, int nbytes)
         lbk = offset/ BLKSIZE;
         startByte = offset % BLKSIZE;
 
-		// I only show how to write DIRECT data blocks, you figure out how to 
-		// write indirect and double-indirect blocks.
         if (lbk < 12)	//direct block
         {
 			printf("WRITE DIRECT...\n");
 
             if (ip->i_block[lbk] == 0) //if no data block yet
-                ip->i_block[lbk] = balloc(dev);
+                ip->i_block[lbk] = balloc(dev); // MUST ALLOCATE a BLOCK
             
-            blk = ip->i_block[lbk];
+            blk = ip->i_block[lbk];  // blk should be a disk block now
         }
 
         else if (lbk >= 12 && lbk < 256+12){ // indirect blocks
 			printf("WRITE INDIRECT...\n");
-            if (!ip->i_block[12]){
-				// allocate a block for it;
-                ip->i_block[12] = balloc(dev);
-
-				//zero out the block on disk !!!!
-				for (i = 0; i < BLKSIZE; i++)
-					wbuf[i] = 0;
-				put_block(dev, ip->i_block[12], wbuf);
+            if (ip->i_block[12] == 0){ //if no data block yet
+                ip->i_block[12] = balloc(dev); // allocate a block for it;
+				memset(writebuf, 0, BLKSIZE); //zero out the block on disk !!!!
+				put_block(dev, ip->i_block[12], writebuf); // put 0 blocks in
             }
-            get_block(mip->dev, ip->i_block[12], wbuf);
+            get_block(mip->dev, ip->i_block[12], writebuf);
 
-			tip = (int*)wbuf + lbk - 12;
+			// set tip and put into block with the recieved indirect blocks from i_block[12]
+			tip = (int*)writebuf + lbk - 12;
 			blk = *tip;
 
-			// NOTE: you may modify balloc() to zero out the allocated block on disk
             if (blk==0){
-				// allocate a disk block;
-				*tip = balloc(mip->dev);
-				blk = *tip;
+				*tip = balloc(mip->dev); // allocate a disk block;
+				blk = *tip; // record it in i_block[12];
             }
         }
         else{   // double indirect blocks
 			printf("WRITE DOUBLE INDIRECT...\n");
 
-			if (!ip->i_block[13]){
-				ip->i_block[13] = balloc(dev);
+			if (ip->i_block[13] == 0){ //if no data block yet
+				ip->i_block[13] = balloc(dev); // MUST ALLOCATE a BLOCK
 
-				get_block(dev, ip->i_block[13], wbuf);
-				for (i = 0; i < BLKSIZE; i++)
-					wbuf[i] = 0;
+				get_block(dev, ip->i_block[13], writebuf);
+				memset(writebuf, 0, BLKSIZE); //zero out the block on disk !!!!
 
-				put_block(dev, ip->i_block[13], wbuf);
+				put_block(dev, ip->i_block[13], writebuf);
 			}
 
-            get_block(dev, ip->i_block[13], wbuf);
-            indblk = (lbk - 256 - 12) / 256;
-			indoff = (lbk - 256 - 12) % 256;
+            get_block(dev, ip->i_block[13], writebuf);
+			lbk -= (12 + 256); // lbk count from 0 
+            indblk = (lbk) / 256; // double indirect block, blocks are in multiple of 256
+			indoff = (lbk) % 256; // double indirect offset
 
-			tip = (int*)wbuf + indblk;
-			blk = *tip;
+			tip = (int*)writebuf + indblk; // add double indirect block into writebuf and set to int pointer
+			blk = *tip; // set it to block
 
 
-			if (!blk)
-			{
-				b = balloc(dev); //allocate block
-				tip = &b;
-				blk = *tip;
+			if (blk == 0){ // check if block needs allocation 
+				allocBlk = balloc(dev); //allocate block
+				tip = &allocBlk;	// set it to integer pointer
+				blk = *tip;	// put integer pointer to block
 
-				get_block(dev, blk, wbuf);
-				for (i = 0; i < BLKSIZE; i++)
-					wbuf[i] = 0;
+				get_block(dev, blk, writebuf);
+				memset(writebuf, 0, BLKSIZE); //zero out the block on disk !!!!
 
-				put_block(dev, blk, wbuf);
+				put_block(dev, blk, writebuf);
 			}
-			get_block(dev, blk, wbuf);
+			get_block(dev, blk, writebuf);
 
-			tip = (int*)wbuf + indoff;
-			blk = *tip;
+			tip = (int*)writebuf + indoff; // add the offset into writebuf and set to integer pointer
+			blk = *tip; // set it to block
 
-			if (!blk)
-			{
-				b = balloc(dev); //more allocation
-				tip = &b;
-				blk = *tip;
-				put_block(dev, blk, wbuf);
+			if (blk == 0){ // check if block needs more allocation
+				allocBlk = balloc(dev); //more allocation of block
+				tip = &allocBlk; // set it to integer pointer
+				blk = *tip; // put integer pointer to block
+				// does not need to zero out writebuf
+				put_block(dev, blk, writebuf); 
 			}
         }        
         //    /* all cases come to here : write to the data block */
-        get_block(mip->dev, blk, wbuf);   // read disk block into wbuf[ ]
-        cp = wbuf + startByte;      // cp points at startByte in wbuf[]
+        get_block(mip->dev, blk, writebuf);   // read disk block into wbuf[ ]
+        cp = writebuf + startByte;      // cp points at startByte in wbuf[]
         remain = BLKSIZE - startByte;     // number of BYTEs remain in this block
 
         while (remain > 0) {               // write as much as remain allows
@@ -152,7 +144,7 @@ int mywrite(int fd, char *buf, int nbytes)
                 mip->INODE.i_size++;    // inc file size (if offset > fileSize)
             if (nbytes <= 0) break;     // if already nbytes, break
         }
-        put_block(mip->dev, blk, wbuf);   // write wbuf[ ] to disk
+        put_block(mip->dev, blk, writebuf);   // write wbuf[ ] to disk
 
 		 // loop back to outer while to write more .... until nbytes are written
     }
@@ -188,7 +180,7 @@ int cp_file(char* source, char* dest)
    my_close(gd);
 }
 
-// checks for tcp if file exists
+// checks for cp if file exists
 int check_file(char *path)
 {
 	int ino;

@@ -37,7 +37,8 @@ int read_file(char *pathname, char *pathname2)
 // returns the actual number of bytes read
 int myread(int fd, char *buf, int nbytes) 
 { 
-	int count = 0, lbk, blk, avil, offset, startByte, *ip, dblk, remain, indblk, indoff;
+	int count = 0, lbk, blk, avil, offset, startByte, dblk, remain, indblk, indoff;
+	int* ip;
 	OFT* oftp = running->fd[fd]; 
 	MINODE* mip = oftp->mptr;
 
@@ -64,25 +65,27 @@ int myread(int fd, char *buf, int nbytes)
 			// read INODE.i_block[12] into int ibuf[256];
 			printf("READ INDIRECT..\n");
 			get_block(mip->dev, mip->INODE.i_block[12], readbuf);
+
+			// set ip and put into block with the recieved indirect block from i_block[12]
 			ip = (int*)readbuf + lbk - 12;
 			blk = *ip;
 		}
 
 		else {
 			printf("READ DOUBLE INDIRECT..\n");
-			// 1. get i_block[13] into int buf13[256];  // buf13[ ] = |D0|D1|D2| ...... |
+			// get i_block[13] into int buf13[256];  // buf13[ ] = |D0|D1|D2| ...... |
 			get_block(mip->dev, mip->INODE.i_block[13], readbuf);
-			indblk = (lbk - 256 - 12) / 256;
-			indoff = (lbk - 256 - 12) % 256;
 
-			// 2. dblk = buf13[lbk / 256];
-			ip = (int*)readbuf + indblk;
+			lbk -= (12 + 256); // lbk count from 0 
 
-			// 3. get dblk into int dbuf[256];          // dbuf[  ] = |256 block numbers|;
-			get_block(mip->dev, *ip, readbuf);
+			indblk = (lbk) / 256; // double indirect block, blocks are in multiple of 256
+			indoff = (lbk) % 256; // double indirect offset
 
-			// 4. blk = dbuf[lbk % 256];
-			ip = (int*)readbuf + indoff;
+			ip = (int*)readbuf + indblk; // set readbuf into an int pointer with added double indirect blocks
+
+			get_block(mip->dev, *ip, readbuf); // get the ip with the double blocks into readbuf;         
+
+			ip = (int*)readbuf + indoff; // set readbuf with indirect offset and then put into block;
 			blk = *ip;
 		}
 
