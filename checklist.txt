@@ -1,0 +1,16 @@
+A. IF YOU can do 2,3,4 below, you are done, skip Part B below
+
+2. Test YOUR cat:
+    cat tiny, cat small, cat large, cat huge: SEE OUTPUTS? ________WE SEE OUTPUTS________ 40
+
+3. Test YOUR cp:  '
+    cp small newsmall; ls: newsmall exist? SAME SIZE? _______EXISTS AND SAME SIZE______________ 10
+    cp large newlarge; ls: newlarge exist? SAME SIZE? _______EXISTS AND SAME SIZE______________ 20
+    cp huge newhuge;   ls: newhuge  exist? SAME SIZE? _______EXISTS AND SAME SIZE______________ 30
+
+4. Enter quit to exit YOUR program. Check YOUR cp results under Linux:
+		 
+	 sudo mount mydisk /mnt           
+	 sudo ls -l /mnt                   # should see all files
+	 sudo diff /mnt/huge /mnt/newhuge  # diff will show differences, if ANY
+	 sudo umount /mnt
