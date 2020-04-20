@@ -47,8 +47,8 @@ int ls_file(MINODE* mip)
 		memset(temp, 0, 256);
 		strncpy(temp, dp->name, dp->name_len);
 		temp[dp->name_len] = 0;
-		size = getFilesize(dp->name);
-		printf("%4d %4d %4d %4d	%s", dp->inode, dp->rec_len, dp->name_len, size, temp); // print [inode# name]
+
+		printf("%4d %4d %4d	%s", dp->inode, dp->rec_len, dp->name_len, temp); // print [inode# name]
 		
 		mipp = iget(running->cwd->dev, dp->inode);
 		if ((mipp->INODE.i_mode) == 0xA000)

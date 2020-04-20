@@ -112,7 +112,7 @@ int myread(int fd, char *buf, int nbytes)
 }
 
 int mycat(char* pathname) {
-	char mybuf[BLKSIZE], dummy = 0;  // a null char at end of mybuf[ ]
+	char mybuf[BLKSIZE];  // a null char at end of mybuf[ ]
 	int n, i, fd = 0;
 
 	// 1. int fd = open filename for READ;

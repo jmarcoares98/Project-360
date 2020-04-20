@@ -2,9 +2,11 @@
 // flags = 0|1|2|3 for READ|WRITE|RDWR|APPEND
 int open_file(char* filename, char* flags)
 {
-	int ino, index, flag = -1;
+	int ino, index, flag = -1, i, dev;
 	MINODE* mip;
+	INODE* ip;
 	OFT* oftp;
+
 	// 1. ask for a pathname and mode to open:
 	if (strcmp(flags, "0") == 0)
 		flag = 0;
@@ -21,10 +23,9 @@ int open_file(char* filename, char* flags)
 
 	// 2. get pathname's inumber:
 	if (filename[0] == '/') 
-		dev = root->dev;          // root INODE's dev
+		dev = root->dev;         // root INODE's dev
 	else 
 		dev = running->cwd->dev;
-
 
 	ino = getino(dev, filename);
 	if (ino == 0)
@@ -36,10 +37,12 @@ int open_file(char* filename, char* flags)
 
 	// 3. get its Minode pointer
 	mip = iget(dev, ino);
+	ip = &mip->INODE;
 
 	// 4. check mip->INODE.i_mode to verify it's a REGULAR file and permission OK.
-	if (!S_ISREG(mip->INODE.i_mode)) {
+	if (!S_ISREG(ip->i_mode)) {
 		printf("ERROR %s is not REG file\n", filename);
+		iput(mip);
 		return -1;
 	}
 	// check if file is ALREADY opened with INCOMPATIBLE mode (R is okay- W/RW/APPEND not okay)
@@ -51,31 +54,35 @@ int open_file(char* filename, char* flags)
 	oftp->mptr = mip;  // point at the file's minode[]
 
 	// 6. Depending on the open mode 0|1|2|3, set the OFT's offset accordingly:
-	switch (oftp->mode){
+	switch (flag){
 	case 0:
+		printf("%s OPEN FOR READ\n", filename);
 		oftp->offset = 0;     // R: offset = 0
 		break;
 	case 1:
+		printf("%s OPEN FOR WRITE\n", filename);
 		truncate(mip);        // W: truncate file to 0 size
 		oftp->offset = 0;
 		break;
 	case 2:
+		printf("%s OPEN FOR RW\n", filename);
 		oftp->offset = 0;     // RW: do NOT truncate file
 		break;
 	case 3:
+		printf("%s OPEN FOR APPEND\n", filename);
 		oftp->offset = mip->INODE.i_size;  // APPEND mode
 		break;
 	default:
-		printf("invalid mode\n");
+		printf("IVALID\n");
 		return(-1);
 	}
 
 	// 7. find the SMALLEST i in running PROC's fd[ ] such that fd[i] is NULL
-	int i;
 	for (i = 0; i < 10; i++)
 	{
-		if (running->fd[i] = NULL)
+		if (running->fd[i] == NULL)
 			break;
+
 	}
 	index = i;
 	printf("fd[i] = %d\n", index);
@@ -84,7 +91,8 @@ int open_file(char* filename, char* flags)
 	running->fd[index] = oftp;
 
 	// 8. update INODE's time field; R: touch atime, W|RW|APPEND: touch atime and mtime
-	mip->dirty = 1;
+	if(flag != 0)
+		mip->dirty = 1;
 
 	// 9. return index as the file descriptor
 	return index;
@@ -106,6 +114,7 @@ int truncate(MINODE* mip)
 			bdalloc(mip->dev, mip->INODE.i_block[i]);
 		}
 	}
+
 	//Deallocate Indirect blocks
 	if (mip->INODE.i_block[12] != 0)
 	{
@@ -126,7 +135,8 @@ int truncate(MINODE* mip)
 					get_block(mip->dev, buf[i], (char*)buf2);
 					for (j = 0; j < 256; j++)
 					{
-						if (buf2[j] != 0) { bdalloc(mip->dev, buf2[j]); }
+						if (buf2[j] != 0)  
+							bdalloc(mip->dev, buf2[j]); 
 					}
 					bdalloc(mip->dev, buf[i]);
 				}
@@ -146,7 +156,20 @@ int truncate(MINODE* mip)
 
 int close_file(char* pathname)
 {
-	int fd = atoi(pathname);
+	int flag = -1;
+
+	if (strcmp(pathname, "0") == 0)
+		flag = 0;
+	else if (strcmp(pathname, "1") == 0)
+		flag = 1;
+	else if (strcmp(pathname, "2") == 0)
+		flag = 2;
+	else if (strcmp(pathname, "3") == 0)
+		flag = 3;
+	else {
+		printf("INVALID!\n");
+		return flag;
+	}
 
 	my_close(fd);
 	return;
@@ -158,22 +181,28 @@ int my_close(int fd)
 	MINODE *mip;
 	OFT *oftp;
 	// 1. verify fd is within range.
+	//if (fd < 0 || fd >= 10)
+	//{
+	//	printf("ERROR: OUT OF RANGE\n");
+	//	return;
+	//}
 
 	// 2. verify running->fd[fd] is pointing at a OFT entry
-	if (running->fd[fd] == 0)
+	if (running->fd[fd] == NULL)
 	{
 		printf("ERROR fd:%d is not OFT\n", fd);
 		return -1;
 	}
+
 	// 3. The following code segments should be fairly obvious:
 	oftp = running->fd[fd];
 	running->fd[fd] = 0;
 	oftp->refCount--;
-	if (oftp->refCount > 0) return 0;
+	if (oftp->refCount > 0) 
+		return 0;
 
 	// last user of this OFT entry ==> dispose of the Minode[]
-	mip = oftp->mptr;
-	iput(mip);
+	iput(oftp->mptr);
 
 	return 0;
 }

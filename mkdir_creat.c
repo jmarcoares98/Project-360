@@ -192,7 +192,7 @@ int mymkdir(MINODE* pip, char* name)
 
 int enter_name(MINODE* pip, int myino, char* myname)
 {
-	INODE* ip = &(pip->INODE);
+	INODE* ip = &pip->INODE;
 	char buf[BLKSIZE];
 	char* cp;
 	DIR* dp;
@@ -234,7 +234,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 			dp->rec_len = BLKSIZE - ((u32)cp - (u32)buf);
 			dp->inode = myino;
 			dp->name_len = name_len;
-			dp->file_type = EXT2_FT_DIR;
+			//dp->file_type = EXT2_FT_DIR;
 			strncpy(dp->name, myname, dp->name_len);
 
 			put_block(dev, ip->i_block[i], buf);
@@ -257,7 +257,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 	dp->inode = myino;
 	dp->name_len = name_len;
 	dp->rec_len = BLKSIZE;
-	dp->file_type = EXT2_FT_DIR;
+	//dp->file_type = EXT2_FT_DIR;
 	strncpy(dp->name, myname, dp->name_len);
 
 	// write data block to disk
@@ -312,23 +312,21 @@ int creat_file(char* name)
 int mycreat(MINODE* pip, char* name) {
 	MINODE* mip;
 	INODE* ip;
-	char* cp;
-	DIR* dp;
 	int ino;
 
 
-	ino = ialloc(dev);
+	ino = ialloc(pip->dev);
 
 	printf("ino: %d\n", ino);
 
-	mip = iget(dev, ino);
-	ip = &(mip->INODE);
+	mip = iget(pip->dev, ino);
+	ip = &mip->INODE;
 
 	ip->i_mode = 0x81A4;
 	ip->i_uid = running->uid;	// Owner uid
 	ip->i_gid = running->gid;	// Group Id
-	ip->i_size = BLKSIZE;		// Size in bytes
-	ip->i_links_count = 1;	        // Links count=2 because of . and ..
+	ip->i_size = 0;		// Size in bytes, set to zero
+	ip->i_links_count = 1;	        // Links count=1 links to parent directory
 	ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);  // set to current time
 	ip->i_blocks = 0;                	// LINUX: Blocks count in 512-byte chunks
 
@@ -337,7 +335,6 @@ int mycreat(MINODE* pip, char* name) {
 
 
 	mip->dirty = 1;               // mark minode dirty
-	mip->ino = ino;
 
 	// 5. iput(mip); which should write the new INODE out to disk.
 	iput(mip);                    // write INODE to disk
