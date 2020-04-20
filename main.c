@@ -51,6 +51,8 @@ int init()
 
 	printf("init()\n");
 
+	running = malloc(sizeof(PROC));
+
 	for (i = 0; i < NMINODE; i++) {
 		mip = &minode[i];
 		mip->dev = mip->ino = 0;
@@ -89,7 +91,6 @@ int main(int argc, char* argv[])
 	}
 	dev = fd;    // fd is the global dev 
 	
-
 	/********** read super block  ****************/
 	get_block(dev, 1, buf);
 	sp = (SUPER*)buf;
@@ -102,7 +103,7 @@ int main(int argc, char* argv[])
 	printf("EXT2 FS OK\n");
 	ninodes = sp->s_inodes_count;
 	nblocks = sp->s_blocks_count;
-
+	printf("DEV: %d\n", dev);
 	get_block(dev, 2, buf);
 	gp = (GD*)buf;
 

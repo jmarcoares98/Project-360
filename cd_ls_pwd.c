@@ -27,91 +27,110 @@ int chdir(char* pathname)
 }
 
 /************* ls **************/
-int ls_file(MINODE* mip)
+int ls_file(MINODE* mip, char *name)
 {
-	char temp[256];
-	char* cp;
-	DIR* dp;
-	MINODE* mipp;
-	char buf[BLKSIZE];
-	int size;
+	INODE* ip = &mip->INODE;
+	u16 type = ip->i_mode & 0xF000;
 
-	memset(buf, 0, 1024);
+	if (type == 0x4000)			// prints out that its a directory
+		printf("dir");
+	else if (type == 0x8000)	// prints out that its a regular file
+		printf("reg");
+	else if (type == 0xA000)	// prints out that its a link
+		printf("lnk");
+	else						// prints default
+		printf("???");
+	
+	printf("%4d	%4d	%4d	%8d	%s", ip->i_links_count, ip->i_gid, ip->i_uid, ip->i_size, name);
 
-	// Assume DIR has only one data block i_block[0]
-	get_block(dev, mip->INODE.i_block[0], buf);
-	dp = (DIR*)buf;
-	cp = buf;
-
-	while (cp < buf + BLKSIZE) {
-		memset(temp, 0, 256);
-		strncpy(temp, dp->name, dp->name_len);
-		temp[dp->name_len] = 0;
-
-		printf("%4d %4d %4d	%s", dp->inode, dp->rec_len, dp->name_len, temp); // print [inode# name]
-		
-		mipp = iget(running->cwd->dev, dp->inode);
-		if ((mipp->INODE.i_mode) == 0xA000)
-		{
-			printf(" -> %s", mipp->INODE.i_block);
-		}
-
-		cp += dp->rec_len;
-		dp = (DIR*)cp;
+	// shows whats it point to when file a symlink
+	if ((ip->i_mode & 0120000) == 0120000)
+		printf(" => %s\n", (char*)(mip->INODE.i_block));
+	else
 		printf("\n");
+}
+
+int ls_dir(MINODE*mip)
+{
+	INODE* ip = &mip->INODE;
+	MINODE* tmip;
+	char* temp[256], buf[BLKSIZE], *cp;
+	DIR* dp;
+	int i;
+
+	// assuming there is only 12 blocks
+	for (i = 0; i < 12; i++)
+	{
+		// if (i_block[i]==0) BREAK;
+		if (ip->i_block[i] == 0)
+			break;
+
+		// rom the minode of a directory, step through the dir_entries in the data blocks of the minode
+		get_block(dev, ip->i_block[i], buf);
+		cp = buf;
+		dp = (DIR*)cp;
+
+		while (cp < buf + BLKSIZE) {
+			// get the name of the blocks
+			strncpy(temp, dp->name, dp->name_len);
+			temp[dp->name_len] = 0; //set the last one to null
+
+			// For each dir_entry, use iget() to get its minode, as in MINODE *mip = iget(dev, ino);
+			tmip = iget(dev, dp->inode);
+
+			// Then, call ls_file(mip, name).
+			if (tmip) { // check if it exists
+				ls_file(tmip, temp);
+				iput(tmip);
+			}
+			else
+				printf("INVALID\n");
+
+			memset(temp, 0, 256);
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
+		}
 	}
 	printf("\n");
 }
 
-/**
- * Get the size of a file.
- * @return The filesize, or 0 if the file does not exist.
- */
-int getFilesize(const char* filename) {
-	struct stat st;
-	if (stat(filename, &st) != 0) {
-		return 0;
-	}
-	return st.st_size;
-}
 
-// ALGORITHM OF LS
-// (1). from the minode of a directory, step through the dir_entries in the data blocks
-// of the minode.INODE. Each dir_entry contains the inode number, ino, and name of a file.
-// For each dir_entry, use iget() to get its minode, as in MINODE *mip = iget(dev, ino);
-// Then, call ls_file(mip, name).
-// (2). ls_file(MINODE (mip, char *name): use mip->INODE and name to list the file info
 int ls(char* pathname)
 {
-	char* temp_dir[128];
-	char* temp_cwd;
-	char* token = strtok(pathname, " ");
-	int i = 0;
+	MINODE* mip;
+	INODE* ip;
+	int ino;
 
-	//strcpy(temp_cwd, running->fname);
-	if (token)
-	{
-		printf("in if pathname: \n");
-		while (token != NULL)
-		{
-			printf("%s\n", token);
-			temp_dir[i] = token;
-			printf("char buf: %s\n", temp_dir[i]);
-			token = strtok(NULL, " ");
-			i++;
-			if (token == NULL)
-			{
-				chdir(temp_dir[i - 1]);
-				ls_file(running->cwd);
-				chdir("..");
-			}
+	printf("mode  lnk  gid     uid	    size        name\n");
+	// goes through current working directory
+	if (strcmp(pathname, "") == 0) {
+		mip = iget(running->cwd->dev, running->cwd->ino);
+		ls_dir(mip);
+	}
+
+	else if (pathname) {
+		if (pathname[0] == '/')
+			mip = root;
+
+		ino = getino(mip, pathname);
+		mip = iget(dev, ino);
+		ip = &mip->INODE;
+
+		if (!S_ISDIR(ip->i_mode)) {
+			printf("NOT A DIRECTORY\n");
+			iput(mip);
+			return;
 		}
+
+		ls_dir(mip);
+		iput(mip);
 	}
-	else
-	{
-		printf("else\n");
-		ls_file(running->cwd);
-	}
+	else // just ls_dir the root
+		ls_dir(root);
+
+	iput(mip);
+	return;
+
 }
 
 /************* pwd **************/

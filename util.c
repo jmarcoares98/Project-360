@@ -12,12 +12,11 @@ int put_block(int dev, int blk, char* buf)
 
 int tokenize(char* pathname)
 {
-	int i, n;
+	int i, n = 0;
 	char* s;
 	printf("tokenize %s\n", pathname);
 
 	strcpy(gpath, pathname);   // tokens are in global gpath[ ]
-	n = 0;
 
 	s = strtok(gpath, "/");
 	while (s) {
@@ -51,67 +50,62 @@ MINODE* iget(int dev, int ino)
 		}
 	}
 
-	// get INODE of ino into buf[ ]    
-	blk = (ino - 1) / 8 + inode_start;
-	offset = (ino - 1) % 8;
-
-	//printf("iget: ino=%d blk=%d offset=%d\n", ino, blk, offset);
-
-	get_block(dev, blk, buf);
-	ip = (INODE*)buf + offset;
-	// copy INODE to mp->INODE
-
 	for (i = 0; i < NMINODE; i++) {
 		mip = &minode[i];
 		if (mip->refCount == 0) {
-			//printf("\nallocating NEW minode[%d] for [%d %d]\n", i, dev, ino);
+			//printf("allocating NEW minode[%d] for [%d %d]\n", i, dev, ino);
 			mip->refCount++;
 			mip->dev = dev;
 			mip->ino = ino;
+
+			// get INODE of ino into buf[ ]    
+			blk = (ino - 1) / 8 + inode_start;
+			offset = (ino - 1) % 8;
+
+			get_block(dev, blk, buf);
+			ip = (INODE*)buf + offset;
+			// copy INODE to mp->INODE
 			mip->INODE = *ip;
 			return mip;
 		}
 	}
-
 	printf("PANIC: no more free minodes\n");
 	return 0;
 }
 
 void iput(MINODE* mip)
 {
-	int i, block, offset;
+	int blk, offset;
 	char buf[BLKSIZE];
+	int ino = mip->ino;
+
 	INODE* ip;
 
+	if (mip->refCount == 0)  // minode is still in use
+		return;
+	if (mip->dirty == 0)        // INODE has not changed; no need to write back
+		return;
+
 	mip->refCount--;
+	// mailman's algorithm
+	blk = (ino - 1) / 8 + inode_start;
+	offset = (ino - 1) % 8;
 
-	if (mip->refCount > 0)  // minode is still in use
-		return;
-	if (!mip->dirty)        // INODE has not changed; no need to write back
-		return;
+	get_block(dev, blk, buf);
 
-	/* write INODE back to disk */
-	/***** NOTE *******************************************
-	 For mountroot, we never MODIFY any loaded INODE
-					so no need to write it back
-	 FOR LATER WROK: MUST write INODE back to disk if refCount==0 && DIRTY
+	ip = (INODE*)buf + offset;
+	// copy mp->INODE to INODE
+	*ip = mip->INODE;
 
-	 Write YOUR code here to write INODE back to disk
-	********************************************************/
-	block = (mip->ino - 1) / 8 + inode_start;
-	offset = (mip->ino) % 8;
-
-	get_block(mip->dev, block, (char*)buf);
-	ip = ((INODE*)buf + offset);
-	memcpy(ip, &mip->INODE, sizeof(INODE));
-	put_block(mip->dev, block, buf);
-
-	return;
+	// write block to disk
+	put_block(dev, blk, buf);
+	mip->dirty = 0;
 }
 
 int search(MINODE* mip, char* name)
 {
-	char* cp, c, sbuf[BLKSIZE], temp[256];
+	char* cp, c, buf[BLKSIZE], temp[256];
+	int i;
 	DIR* dp;
 	INODE* ip;
 
@@ -119,24 +113,29 @@ int search(MINODE* mip, char* name)
 	ip = &(mip->INODE);
 
 	/*** search for name in mip's data blocks: ASSUME i_block[0] ONLY ***/
+	for (i = 0; i < 12; i++) {
+		if (ip->i_block[i] == 0)
+			break;
 
-	get_block(dev, ip->i_block[0], sbuf);
-	dp = (DIR*)sbuf;
-	cp = sbuf;
-	//printf("  ino   rlen  nlen  name\n");
-
-	while (cp < sbuf + BLKSIZE) {
-		strncpy(temp, dp->name, dp->name_len);
-		temp[dp->name_len] = 0;
-		//printf("%4d  %4d  %4d    %s\n",
-			//dp->inode, dp->rec_len, dp->name_len, temp);
-		if (strcmp(temp, name) == 0) {
-			printf("found %s : ino = %d\n", temp, dp->inode);
-			return dp->inode;
-		}
-		cp += dp->rec_len;
+		get_block(dev, ip->i_block[i], buf);
+		cp = buf;
 		dp = (DIR*)cp;
-	}
+		//printf("  ino   rlen  nlen  name\n");
+
+		while (cp < buf + BLKSIZE) {
+			strncpy(temp, dp->name, dp->name_len);
+			temp[dp->name_len] = 0;
+			//printf("%4d  %4d  %4d    %s\n",
+				//dp->inode, dp->rec_len, dp->name_len, temp);
+			if (strcmp(temp, name) == 0) {
+				printf("found %s : ino = %d\n", temp, dp->inode);
+				return dp->inode;
+			}
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
+		}
+	} 
+	printf("%s DOES NOT EXIST...\n", name);
 	return 0;
 }
 
@@ -168,15 +167,11 @@ int getino(int dev, char* pathname)
 		ino = search(mip, name[i]);
 
 		if (ino == 0) {
-			iput(mip);
-			printf("name %s does not exist\n", name[i]);
 			return 0;
 		}
-		iput(mip);                // release current mip
 		mip = iget(dev, ino);     // get next mip
 	}
 
-	iput(mip);                   // release mip  
 	return ino;
 }
 

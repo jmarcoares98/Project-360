@@ -56,20 +56,20 @@ int myread(int fd, char *buf, int nbytes)
 		// I only show how to read DIRECT BLOCKS. YOU do INDIRECT and D_INDIRECT
 
 		if (lbk < 12) {                     // lbk is a direct block
-			printf("DIRECT...\n");
+			printf("READ DIRECT...\n");
 			blk = mip->INODE.i_block[lbk]; // map LOGICAL lbk to PHYSICAL blk
 		}
 
 		else if (lbk >= 12 && lbk < 256 + 12) { //  indirect blocks 
 			// read INODE.i_block[12] into int ibuf[256];
-			printf("INDIRECT..\n");
+			printf("READ INDIRECT..\n");
 			get_block(mip->dev, mip->INODE.i_block[12], readbuf);
 			ip = (int*)readbuf + lbk - 12;
 			blk = *ip;
 		}
 
 		else {
-			printf("DOUBLE INDIRECT..\n");
+			printf("READ DOUBLE INDIRECT..\n");
 			// 1. get i_block[13] into int buf13[256];  // buf13[ ] = |D0|D1|D2| ...... |
 			get_block(mip->dev, mip->INODE.i_block[13], readbuf);
 			indblk = (lbk - 256 - 12) / 256;
@@ -117,6 +117,7 @@ int mycat(char* pathname) {
 
 	// 1. int fd = open filename for READ;
 	fd = open_file(pathname, "0");
+	pfd();
 
 	if (fd < 0)
 		return;

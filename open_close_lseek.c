@@ -181,11 +181,11 @@ int my_close(int fd)
 	MINODE *mip;
 	OFT *oftp;
 	// 1. verify fd is within range.
-	//if (fd < 0 || fd >= 10)
-	//{
-	//	printf("ERROR: OUT OF RANGE\n");
-	//	return;
-	//}
+	if (fd < 0 || fd >= 10)
+	{
+		printf("ERROR: OUT OF RANGE\n");
+		return;
+	}
 
 	// 2. verify running->fd[fd] is pointing at a OFT entry
 	if (running->fd[fd] == NULL)
@@ -245,33 +245,30 @@ int pfd()
 	printf("\n  fd   mode   offset   device   inode \n");
 	printf("  --   ----   ------   ------   ----- \n");
 	for (i = 0; i < 10; i++){
+		if (running->fd[i] == NULL)
+			break;
+
 		ofpt = running->fd[i];
 
 		if (ofpt->refCount == 0)
 			return;
 
-		printf("  %02d    ", i);
-		//prints the mode in chars
-		switch (ofpt->mode){
-		case 0:
+		printf("  %d    ", i); // prints fd
+
+		if (ofpt->mode == 0) // prints mode
 			printf("RD");
-			break;
-		case 1:
+		else if (ofpt->mode == 1)
 			printf("WR");
-			break;
-		case 2:
+		else if (ofpt->mode == 2)
 			printf("RW");
-			break;
-		case 3:
+		else if (ofpt->mode == 3)
 			printf("AP");
-			break;
-		default:
+		else
 			printf("--");
-			break;
-		}
 
 		//prints the offset, dev and ino
 		printf("    %6d     %2d     %5d\n", ofpt->offset, ofpt->mptr->dev, ofpt->mptr->ino);
 	}
-	return 0;
+
+	printf("\n");
 }

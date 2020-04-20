@@ -42,18 +42,17 @@ int write_file()
 
 int mywrite(int fd, char *buf, int nbytes)
 {
-	int count = 0, lbk, blk, offset, startByte, * ip, dblk, remain, indblk, indoff;
+	int count = 0, lbk, blk, offset, startByte, dblk, remain, indblk, indoff, i = 0, *tip, b;
 	OFT* oftp = running->fd[fd];
 	MINODE* mip = oftp->mptr;
+	INODE* ip = &mip->INODE;
 
 	offset = oftp->offset;
 	char* cq = buf, * cp;                // cq points at buf[ ]
-	char writebuf[BLKSIZE];
+	char wbuf[BLKSIZE];
 
-	printf("test\n");
-    while(nbytes)
+    while(nbytes > 0)
     {
-		printf("test2\n");
 		// compute LOGICAL BLOCK (lbk) and the startByte in that lbk:
         lbk = offset/ BLKSIZE;
         startByte = offset % BLKSIZE;
@@ -62,127 +61,130 @@ int mywrite(int fd, char *buf, int nbytes)
 		// write indirect and double-indirect blocks.
         if (lbk < 12)	//direct block
         {
-			printf("DIRECT...\n");
+			printf("WRITE DIRECT...\n");
 
-            if (mip->INODE.i_block[lbk] == 0) //if no data block yet
-                mip->INODE.i_block[lbk] = balloc(mip->dev);
+            if (ip->i_block[lbk] == 0) //if no data block yet
+                ip->i_block[lbk] = balloc(dev);
             
-            blk = mip->INODE.i_block[lbk];
+            blk = ip->i_block[lbk];
         }
+
         else if (lbk >= 12 && lbk < 256+12){ // indirect blocks
-			printf("INDIRECT...\n");
-            if (mip->INODE.i_block[12]==0){
+			printf("WRITE INDIRECT...\n");
+            if (!ip->i_block[12]){
 				// allocate a block for it;
-				// zero out the block on disk !!!!
-                mip->INODE.i_block[12] = balloc(mip->dev);
-				get_block(mip->dev, mip->INODE.i_block[12], writebuf);
+                ip->i_block[12] = balloc(dev);
 
-				for (int i = 0; i < BLKSIZE; i++)
-					writebuf[i] = 0;
-
-				put_block(mip->dev, mip->INODE.i_block[12], writebuf);
+				//zero out the block on disk !!!!
+				for (i = 0; i < BLKSIZE; i++)
+					wbuf[i] = 0;
+				put_block(dev, ip->i_block[12], wbuf);
             }
-            get_block(mip->dev, mip->INODE.i_block[12], writebuf);
+            get_block(mip->dev, ip->i_block[12], wbuf);
 
-			ip = (int*)writebuf + lbk - 12;
-            blk = *ip;
+			tip = (int*)wbuf + lbk - 12;
+			blk = *tip;
 
 			// NOTE: you may modify balloc() to zero out the allocated block on disk
             if (blk==0){
 				// allocate a disk block;
-                *ip = balloc(mip->dev);
-
-                blk = *ip;
+				*tip = balloc(mip->dev);
+				blk = *tip;
             }
         }
         else{   // double indirect blocks
-			printf("DOUBLE INDIRECT...\n");
-			if (mip->INODE.i_block[13] == 0) {
-				// allocate a block for it;
-				// zero out the block on disk !!!!
-				mip->INODE.i_block[12] = balloc(mip->dev);
-				get_block(mip->dev, mip->INODE.i_block[13], writebuf);
+			printf("WRITE DOUBLE INDIRECT...\n");
 
-				for (int i = 0; i < BLKSIZE; i++)
-					writebuf[i] = 0;
+			if (!ip->i_block[13]){
+				ip->i_block[13] = balloc(dev);
 
-				put_block(mip->dev, mip->INODE.i_block[13], writebuf);
+				get_block(dev, ip->i_block[13], wbuf);
+				for (i = 0; i < BLKSIZE; i++)
+					wbuf[i] = 0;
+
+				put_block(dev, ip->i_block[13], wbuf);
 			}
-            get_block(mip->dev, mip->INODE.i_block[13], writebuf);
-            indblk = (lbk - 12 + 256) / 256;
-			indoff = (lbk -256 -12) % 256;
 
-			ip = (int*)writebuf + indblk;
-			blk = *ip;
+            get_block(dev, ip->i_block[13], wbuf);
+            indblk = (lbk - 256 - 12) / 256;
+			indoff = (lbk - 256 - 12) % 256;
 
-			if (!blk){
-				ip = balloc(mip->dev);
-				blk = *ip;
-				get_block(mip->dev, blk, writebuf);
+			tip = (int*)wbuf + indblk;
+			blk = *tip;
 
-				for (int i = 0; i < BLKSIZE; i++)
-					writebuf[i] = 0;
 
-				put_block(mip->dev, blk, writebuf);
+			if (!blk)
+			{
+				b = balloc(dev); //allocate block
+				tip = &b;
+				blk = *tip;
+
+				get_block(dev, blk, wbuf);
+				for (i = 0; i < BLKSIZE; i++)
+					wbuf[i] = 0;
+
+				put_block(dev, blk, wbuf);
 			}
-            get_block(mip->dev, blk, writebuf);
+			get_block(dev, blk, wbuf);
 
-			ip = (int*)writebuf + indoff;
-            blk = *ip;
+			tip = (int*)wbuf + indoff;
+			blk = *tip;
 
-
-			if (!blk) {
-				ip = balloc(mip->dev);
-				blk = *ip;
-
-				put_block(mip->dev, blk, writebuf);
+			if (!blk)
+			{
+				b = balloc(dev); //more allocation
+				tip = &b;
+				blk = *tip;
+				put_block(dev, blk, wbuf);
 			}
-        }
-        
+        }        
         //    /* all cases come to here : write to the data block */
-        get_block(mip->dev, blk, writebuf);   // read disk block into wbuf[ ]
-        cp = writebuf + startByte;      // cp points at startByte in wbuf[]
+        get_block(mip->dev, blk, wbuf);   // read disk block into wbuf[ ]
+        cp = wbuf + startByte;      // cp points at startByte in wbuf[]
         remain = BLKSIZE - startByte;     // number of BYTEs remain in this block
 
         while (remain > 0) {               // write as much as remain allows
-            *cp++ = *cq++;              // cq points at buf[ ]
+            *cq++ = *cp++;              // cq points at buf[ ]
             nbytes--; remain--;         // dec counts
+			count++;
             oftp->offset++;             // advance offset
-            if (offset > mip->INODE.i_size)  // especially for RW|APPEND mode
+            if (oftp->offset > mip->INODE.i_size)  // especially for RW|APPEND mode
                 mip->INODE.i_size++;    // inc file size (if offset > fileSize)
             if (nbytes <= 0) break;     // if already nbytes, break
         }
-        put_block(mip->dev, blk, writebuf);   // write wbuf[ ] to disk
+        put_block(mip->dev, blk, wbuf);   // write wbuf[ ] to disk
 
 		 // loop back to outer while to write more .... until nbytes are written
     }
-	mip->dirty = 1;
-    printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd);
-    return nbytes;
+	mip->dirty = 1;		 // mark mip dirty for iput() 
+    printf("wrote %d char into file descriptor fd=%d\n", count, fd);
+    return count;
 }
 
 int cp_file(char* source, char* dest)
 {
 	char buf[BLKSIZE];
-	int n = 0, fs = 0, gd = 0, i = 0;
+	int n = 0, fd = 0, gd = 0, i = 0;
 	// NOTE:In the project, you may have to creat the dst file first, then open it
 	// for WR, OR  if open fails due to no file yet, creat it and then open it
 	// for WR.
 	check_file(dest);
 
 	// 1. fd = open src for READ;
-	fs = open_file(source, "0");
+	fd = open_file(source, "0");
 
 	// 2. gd = open dst for WR | CREAT;
 	gd = open_file(dest, "1");
 
-	while (n = myread(fs, buf, BLKSIZE))
+	pfd();
+
+	while (n = myread(fd, buf, BLKSIZE))
     {
 		mywrite(gd, buf, n);
     }
 	printf("\n\r");
     
-   my_close(fs);
+   my_close(fd);
    my_close(gd);
 }
 
