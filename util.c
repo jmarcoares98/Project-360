@@ -13,7 +13,7 @@ int put_block(int dev, int blk, char* buf)
 MINODE* mialloc() // allocate a FREE minode for use
 {
 	int i;
-	MIONDE* mp;
+	MINODE* mp;
 
 	for (i = 0; i < NMINODE; i++) {
 		mp = &minode[i];
@@ -22,7 +22,7 @@ MINODE* mialloc() // allocate a FREE minode for use
 			return mp;
 		}
 	}
-	printf(“FS panic : out of minodes\n”);
+	printf("FS panic : out of minodes\n");
 	return 0;
 }
 
