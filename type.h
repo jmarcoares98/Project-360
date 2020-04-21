@@ -15,11 +15,17 @@ GD* gp;
 INODE* ip;
 DIR* dp;
 
+// Block number of EXT2 FS on FD
+#define SUPERBLOCK 1
+#define GDBLOCK	   2
+#define ROOT_INODE 2
+
 #define FREE        0
 #define READY       1
 
 #define BLKSIZE  1024
 #define NMINODE   128
+#define NMTABLE	   10
 #define NFD        16
 #define NPROC       2
 
@@ -48,4 +54,18 @@ typedef struct proc {
 	OFT* fd[NFD];
 }PROC;
 
+// Mount Table structure
+typedef struct mtable {
+	int dev; // device number; 0 for FREE
+	int ninodes; // from superblock
+	int nblocks;
+	int free_blocks; // from superblock and GD
+	int free_inodes;
+	int bmap; // from group descriptor
+	int imap;
+	int iblock; // inodes start block
+	MINODE* mntDirPtr; // mount point DIR pointer
+	char devName[64]; //device name
+	char mntName[64]; // mount point DIR name
+}MTABLE;
 #endif

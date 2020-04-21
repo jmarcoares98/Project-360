@@ -10,6 +10,27 @@ int put_block(int dev, int blk, char* buf)
 	write(dev, buf, BLKSIZE);
 }
 
+MINODE* mialloc() // allocate a FREE minode for use
+{
+	int i;
+	MIONDE* mp;
+
+	for (i = 0; i < NMINODE; i++) {
+		mp = &minode[i];
+		if (mp->refCount == 0) {
+			mp->refCount = 1;
+			return mp;
+		}
+	}
+	printf(“FS panic : out of minodes\n”);
+	return 0;
+}
+
+int midalloc(MINODE* mip) // release a used minode
+{
+	mip->refCount = 0;
+}
+
 int tokenize(char* pathname)
 {
 	int i, n = 0;
@@ -54,6 +75,7 @@ MINODE* iget(int dev, int ino)
 		mip = &minode[i];
 		if (mip->refCount == 0) {
 			//printf("allocating NEW minode[%d] for [%d %d]\n", i, dev, ino);
+			mip = mialloc();
 			mip->refCount++;
 			mip->dev = dev;
 			mip->ino = ino;

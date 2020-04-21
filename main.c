@@ -20,6 +20,7 @@
 
 // global variables
 MINODE minode[NMINODE];
+MINODE mtable[NMTABLE];
 MINODE* root;
 SUPER* sp;
 
@@ -42,11 +43,13 @@ char buf[BLKSIZE];
 #include "open_close_lseek.c"
 #include "read_cat.c"
 #include "write_cp.c"
+#include "mount_umount.c"
 
 int init()
 {
 	int i, j;
 	MINODE* mip;
+	MTABLE* mtab;
 	PROC* p;
 
 	printf("init()\n");
@@ -68,6 +71,18 @@ int init()
 		p->status = FREE;
 		for (j = 0; j < NFD; j++)
 			p->fd[j] = 0;
+	}
+
+	for (i = 0; i < NMTABLE; i++) { // initialize mtables as FREE
+		mtab = &mtable[i];
+		mtab->dev = 0;
+		mtab->ninodes = 0; // from superblock
+		mtab->nblocks = 0;
+		mtab->free_blocks = 0; // from superblock and GD
+		mtab->free_inodes = 0;
+		mtab->bmap = 0; // from group descriptor
+		mtab->imap = 0;
+		mtab->iblock = 0;
 	}
 }
 
@@ -125,7 +140,7 @@ int main(int argc, char* argv[])
 	// WRTIE code here to create P1 as a USER process
 
 	while (1) {
-		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|open|close|lseek|read|write|cat|cp|mv|pfd|quit] ");
+		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|open|close|lseek|read|write|cat|cp|mv|pfd|mount|umount|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 
@@ -169,6 +184,10 @@ int main(int argc, char* argv[])
 			cp_file(pathname, pathname2);
 		else if (strcmp(cmd, "pfd") == 0)
 			pfd();
+		else if (strcmp(cmd, "mount") == 0)
+			mount();
+		else if (strcmp(cmd, "unmount") == 0)
+			umount(pathname);
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
 	}
