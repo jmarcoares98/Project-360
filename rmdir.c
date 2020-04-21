@@ -1,6 +1,24 @@
+void clr_bit(char* buf, int bit)
+{
+	buf[bit / 8] &= ~(1 << (bit % 8));
+}
+
+int incFreeInodes(int dev)
+{
+	char buf[BLKSIZE];
+	// inc free inodes count in SUPER and GD
+	get_block(dev, 1, buf);
+	sp = (SUPER*)buf;
+	sp->s_free_inodes_count++;
+	put_block(dev, 1, buf);
+	get_block(dev, 2, buf);
+	gp = (GD*)buf;
+	gp->bg_free_inodes_count++;
+	put_block(dev, 2, buf);
+}
+
 int idalloc(int dev, int ino)  // deallocate an ino number
 {
-	int i;
 	char buf[BLKSIZE];
 
 	if (ino > ninodes) {
@@ -14,11 +32,13 @@ int idalloc(int dev, int ino)  // deallocate an ino number
 
 	// write buf back
 	put_block(dev, imap, buf);
+
+	// update free inode count in SUPER and GD
+	incFreeInodes(dev);
 }
 
 int bdalloc(int dev, int blk) // deallocate a blk number
 {
-	int i;
 	char buf[BLKSIZE];
 
 	// get block bitmap block
@@ -27,6 +47,9 @@ int bdalloc(int dev, int blk) // deallocate a blk number
 
 	// write buf back
 	put_block(dev, bmap, buf);
+
+	// update free inode count in SUPER and GD
+	incFreeInodes(dev);
 }
 
 int rmdir(char* pathname)

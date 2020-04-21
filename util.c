@@ -103,30 +103,31 @@ void iput(MINODE* mip)
 
 	INODE* ip;
 
-	if (mip->refCount == 0)  // minode is still in use
+	if (mip == 0) return;
+
+	if (mip->refCount == 0)		// minode is still in use
 		return;
 	if (mip->dirty == 0)        // INODE has not changed; no need to write back
 		return;
 
-	mip->refCount--;
-	// mailman's algorithm
+	mip->refCount--;			// dec refCount by 1
+
+	// write INODE back to disk
 	blk = (ino - 1) / 8 + inode_start;
 	offset = (ino - 1) % 8;
 
 	get_block(dev, blk, buf);
 
-	ip = (INODE*)buf + offset;
-	// copy mp->INODE to INODE
-	*ip = mip->INODE;
-
-	// write block to disk
-	put_block(dev, blk, buf);
+	ip = (INODE*)buf + offset;	// ip points at INODE
+	*ip = mip->INODE;			// copy mp->INODE to INODE
+	put_block(dev, blk, buf); 	// write back to disk
+	midalloc(mip);				// mip->refCount = 0;
 	mip->dirty = 0;
 }
 
 int search(MINODE* mip, char* name)
 {
-	char* cp, c, buf[BLKSIZE], temp[256];
+	char* cp, buf[BLKSIZE], temp[256];
 	int i;
 	DIR* dp;
 	INODE* ip;
@@ -185,15 +186,23 @@ int getino(int dev, char* pathname)
 	for (i = 0; i < n; i++) {
 		//printf("===========================================\n");
 		//printf("getino: i=%d name[%d]=%s\n", i, i, name[i]);
+		if (!S_ISDIR(mip->INODE.i_mode)) { // check DIR type
+			printf("%s NOT A DIRECTORY\n", name[i]);
+			iput(mip);
+			return 0;
+		}
 
 		ino = search(mip, name[i]);
 
-		if (ino == 0) {
+		if (!ino) {
+			iput(mip);
 			return 0;
 		}
-		mip = iget(dev, ino);     // get next mip
+		iput(mip); // release current minode
+		mip = iget(dev, ino); // switch to new minode
 	}
 
+	iput(mip);
 	return ino;
 }
 

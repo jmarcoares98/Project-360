@@ -11,13 +11,8 @@ void set_bit(char* buf, int bit)
 	buf[bit / 8] |= (1 << (bit % 8)); // in Chapter 11.3.1
 }
 
-void clr_bit(char* buf, int bit) 
-{
-	buf[bit / 8] &= ~(1 << (bit % 8));
-}
-
 // this function helps reduce of how many free inodes there are
-void reduce(int dev)
+void decFreeInodes(int dev)
 {
 	char buf[BLKSIZE];
 
@@ -25,9 +20,7 @@ void reduce(int dev)
 	get_block(dev, 1, buf);
 	sp = (SUPER*)buf;
 	sp->s_free_inodes_count--;
-	put_block(dev, 1, buf); //built in function, adds block
-
-	//add another block
+	put_block(dev, 1, buf); 
 	get_block(dev, 2, buf);
 	gp = (GD*)buf;
 	gp->bg_free_inodes_count--;
@@ -45,7 +38,7 @@ int ialloc(int dev)  // allocate an inode number from inode_bitmap
 	for (i = 0; i < ninodes; i++) {
 		if (tst_bit(buf, i) == 0) {
 			set_bit(buf, i);
-			reduce(dev);
+			decFreeInodes(dev); // update free inode count in SUPER and GD
 			put_block(dev, imap, buf);
 			return i + 1;
 		}
@@ -65,7 +58,7 @@ int balloc(int dev)
 
 		if (tst_bit(buf, i) == 0) {
 			set_bit(buf, i);
-			reduce(dev);
+			decFreeInodes(dev);
 			put_block(dev, bmap, buf);
 			return i - 1;
 		}

@@ -44,6 +44,7 @@ char buf[BLKSIZE];
 #include "read_cat.c"
 #include "write_cp.c"
 #include "mount_umount.c"
+#include "access_macess.c"
 
 int init()
 {

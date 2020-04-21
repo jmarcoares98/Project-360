@@ -1,7 +1,5 @@
 int mount()    /*  Usage: mount filesys mount_point OR mount */
-{
-	
-
+{	
 	// 1. Ask for filesys (a pathname) and mount_point (a pathname also).
 	// If mount with no parameters: display current mounted filesystems.
 
