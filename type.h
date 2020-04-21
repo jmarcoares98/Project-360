@@ -16,9 +16,9 @@ INODE* ip;
 DIR* dp;
 
 // Block number of EXT2 FS on FD
-#define SUPERBLOCK 1
-#define GDBLOCK	   2
-#define ROOT_INODE 2
+#define SUPERBLOCK	1
+#define GDBLOCK		2
+#define ROOT_INODE	2
 
 #define FREE        0
 #define READY       1
@@ -28,6 +28,10 @@ DIR* dp;
 #define NMTABLE	   10
 #define NFD        16
 #define NPROC       2
+
+#define OWNER  000700
+#define GROUP  000070
+#define OTHER  000007
 
 typedef struct minode {
 	INODE INODE;
