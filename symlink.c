@@ -28,7 +28,7 @@ void symlink(char *oldName, char *newName)
 	// (4).write the string oldNAME into the i_block[], which has room for 60 chars.
 	// (INODE has 24 unused bytes after i_block[]. So, up to 84 bytes for oldNAME)
 	memcpy(new_mip->INODE.i_block, oldName, strlen(oldName));
-	printf("%s's iblock: %d\n", newName, new_mip->INODE.i_block[0]);
+	printf("SYMLINK: %s's iblock: %d\n", newName, new_mip->INODE.i_block[0]);
 	// set / x / y / z file size = number of chars in oldName
 	new_mip->INODE.i_size = strlen(oldName);
 	// (5).mark newFile parent minode dirty
