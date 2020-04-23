@@ -21,6 +21,7 @@
 // global variables
 MINODE minode[NMINODE];
 MINODE mtable[NMTABLE];
+MTABLE* mp;
 MINODE* root;
 SUPER* sp;
 
@@ -50,7 +51,7 @@ int init()
 {
 	int i, j;
 	MINODE* mip;
-	MTABLE* mtab;
+	MTABLE* mtable;
 	PROC* p;
 
 	printf("init()\n");
@@ -76,15 +77,15 @@ int init()
 	proc[NPROC - 1].next = &proc[0]; // circular list
 
 	for (i = 0; i < NMTABLE; i++) { // initialize mtables as FREE
-		mtab = &mtable[i];
-		mtab->dev = 0;
-		mtab->ninodes = 0; // from superblock
-		mtab->nblocks = 0;
-		mtab->free_blocks = 0; // from superblock and GD
-		mtab->free_inodes = 0;
-		mtab->bmap = 0; // from group descriptor
-		mtab->imap = 0;
-		mtab->iblock = 0;
+		mtable = &mtable[i];
+		mtable->dev = 0;
+		mtable->ninodes = 0; // from superblock
+		mtable->nblocks = 0;
+		mtable->free_blocks = 0; // from superblock and GD
+		mtable->free_inodes = 0;
+		mtable->bmap = 0; // from group descriptor
+		mtable->imap = 0;
+		mtable->iblock = 0;
 	}
 }
 
@@ -92,22 +93,13 @@ int init()
 int mount_root()
 {
 	printf("mount_root()\n");
-	root = iget(dev, 2);
-}
-
-char* disk = "mydisk";
-int main(int argc, char* argv[])
-{
-	int ino, user;
-	char line[128], userline[128], cmd[32], pathname[128], pathname2[128];
-
 	printf("checking EXT2 FS ....");
 	if ((fd = open(disk, O_RDWR)) < 0) {
 		printf("open %s failed\n", disk);
 		exit(1);
 	}
 	dev = fd;    // fd is the global dev 
-	
+
 	/********** read super block  ****************/
 	get_block(dev, 1, buf);
 	sp = (SUPER*)buf;
@@ -118,21 +110,23 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	printf("EXT2 FS OK\n");
-	ninodes = sp->s_inodes_count;
-	nblocks = sp->s_blocks_count;
-	printf("DEV: %d\n", dev);
+	// fill mount table mtable[0] with rootdev information
+	mp = &mtable[0]; // use mtable[0]
+	mp->dev = dev;
+	// copy super block info into mtable[0]
+	ninodes = mp->ninodes = sp->s_inodes_count;
+	nblocks = mp->nblocks = sp->s_blocks_count;
+	strcpy(mp->devName, rootdev);
+	strcpy(mp->mntName, "/");
 	get_block(dev, 2, buf);
 	gp = (GD*)buf;
 
-	bmap = gp->bg_block_bitmap;
-	imap = gp->bg_inode_bitmap;
+	bmap = mp->bmap = gp->bg_block_bitmap;
+	imap = mp->imap = gp->bg_inode_bitmap;
 	inode_start = gp->bg_inode_table;
 	printf("bmp=%d imap=%d inode_start = %d\n", bmap, imap, inode_start);
-
-	init();
-	mount_root();
-	printf("root refCount = %d\n", root->refCount);
-
+	root = iget(dev, 2);
+	mp->mntDirPtr = root; // double link
 
 	printf("running on proc[0] or proc[1]? (0 / 1)\n");
 	fgets(userline, 128, stdin);
@@ -156,8 +150,18 @@ int main(int argc, char* argv[])
 	}
 
 	printf("mount : %s mounted on / \n", disk);
+	return 0;
+}
 
-	
+char* disk = "mydisk";
+int main(int argc, char* argv[])
+{
+	int ino, user;
+	char line[128], userline[128], cmd[32], pathname[128], pathname2[128];
+
+	init();
+	mount_root();
+	printf("root refCount = %d\n", root->refCount);	
 
 	// WRTIE code here to create P1 as a USER process
 	while (1) {
