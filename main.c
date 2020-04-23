@@ -133,12 +133,6 @@ int main(int argc, char* argv[])
 	mount_root();
 	printf("root refCount = %d\n", root->refCount);
 
-	printf("creating P0 as running process\n");
-	running = &proc[0];
-	running->status = READY;
-	running->cwd = iget(dev, 2);
-
-	printf("root refCount = %d\n", root->refCount);
 
 	printf("running on proc[0] or proc[1]? (0 / 1)\n");
 	fgets(userline, 128, stdin);
@@ -160,6 +154,8 @@ int main(int argc, char* argv[])
 		running->status = READY;
 		running->cwd = iget(dev, 2);
 	}
+
+	printf("root refCount = %d\n", root->refCount);
 
 	
 
