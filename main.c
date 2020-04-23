@@ -98,8 +98,8 @@ int mount_root()
 char* disk = "mydisk";
 int main(int argc, char* argv[])
 {
-	int ino;
-	char line[128], cmd[32], pathname[128], pathname2[128];
+	int ino, user;
+	char line[128], userline[128], cmd[32], pathname[128], pathname2[128];
 
 	printf("checking EXT2 FS ....");
 	if ((fd = open(disk, O_RDWR)) < 0) {
@@ -140,8 +140,30 @@ int main(int argc, char* argv[])
 
 	printf("root refCount = %d\n", root->refCount);
 
-	// WRTIE code here to create P1 as a USER process
+	printf("running on proc[0] or proc[1]? (0 / 1)\n");
+	fgets(userline, 128, stdin);
+	userline[strlen(userline) - 1] = 0;
+	if (userline[0] == 0)
+		continue;
+	sscanf(userline, "%d", user);
 
+	if (user == 0) {
+		printf("creating P0 as running process\n");
+		running = &proc[0];
+		running->status = READY;
+		running->cwd = iget(dev, 2);
+	}
+
+	if (user == 1) {
+		printf("creating P1 as running process\n");
+		running = &proc[1];
+		running->status = READY;
+		running->cwd = iget(dev, 2);
+	}
+
+	
+
+	// WRTIE code here to create P1 as a USER process
 	while (1) {
 		printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|open|close|lseek|read|write|cat|cp|mv|pfd|mount|umount|quit] ");
 		fgets(line, 128, stdin);
