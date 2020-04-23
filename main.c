@@ -207,7 +207,7 @@ int main(int argc, char* argv[])
 			pfd();
 		else if (strcmp(cmd, "mount") == 0)
 			mount();
-		else if (strcmp(cmd, "unmount") == 0)
+		else if (strcmp(cmd, "umount") == 0)
 			umount(pathname);
 		else if (strcmp(cmd, "quit") == 0)
 			quit();
