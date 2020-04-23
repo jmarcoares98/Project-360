@@ -148,14 +148,14 @@ int main(int argc, char* argv[])
 		running->cwd = iget(dev, 2);
 	}
 
-	if (user == 1) {
+	else if (user == 1) {
 		printf("creating P1 as running process\n");
 		running = &proc[1];
 		running->status = READY;
 		running->cwd = iget(dev, 2);
 	}
 
-	printf("root refCount = %d\n", root->refCount);
+	printf("mount : %s mounted on / \n", disk);
 
 	
 
