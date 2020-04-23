@@ -66,13 +66,14 @@ int init()
 	}
 	for (i = 0; i < NPROC; i++) {
 		p = &proc[i];
-		p->pid = i;
-		p->uid = p->gid = 0;
+		p->pid = i; // pid = 0 to NPROC-1
+		p->uid = i; // P0 is a superuser process
 		p->cwd = 0;
 		p->status = FREE;
 		for (j = 0; j < NFD; j++)
-			p->fd[j] = 0;
+			p->fd[j] = 0; // all file descriptors are NULL
 	}
+	proc[NPROC - 1].next = &proc[0]; // circular list
 
 	for (i = 0; i < NMTABLE; i++) { // initialize mtables as FREE
 		mtab = &mtable[i];
@@ -136,6 +137,7 @@ int main(int argc, char* argv[])
 	running = &proc[0];
 	running->status = READY;
 	running->cwd = iget(dev, 2);
+
 	printf("root refCount = %d\n", root->refCount);
 
 	// WRTIE code here to create P1 as a USER process
