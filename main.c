@@ -51,7 +51,7 @@ int init()
 {
 	int i, j;
 	MINODE* mip;
-	MTABLE* mtable;
+	MTABLE* mtab;
 	PROC* p;
 
 	printf("init()\n");
@@ -65,6 +65,7 @@ int init()
 		mip->mounted = 0;
 		mip->mptr = 0;
 	}
+
 	for (i = 0; i < NPROC; i++) {
 		p = &proc[i];
 		p->pid = i; // pid = 0 to NPROC-1
@@ -77,16 +78,18 @@ int init()
 	proc[NPROC - 1].next = &proc[0]; // circular list
 
 	for (i = 0; i < NMTABLE; i++) { // initialize mtables as FREE
-		mtable = &mtable[i];
-		mtable->dev = 0;
-		mtable->ninodes = 0; // from superblock
-		mtable->nblocks = 0;
-		mtable->free_blocks = 0; // from superblock and GD
-		mtable->free_inodes = 0;
-		mtable->bmap = 0; // from group descriptor
-		mtable->imap = 0;
-		mtable->iblock = 0;
+		mtab = &mtable[i];
+		mtab->dev = 0;
+		mtab->ninodes = 0; // from superblock
+		mtab->nblocks = 0;
+		mtab->free_blocks = 0; // from superblock and GD
+		mtab->free_inodes = 0;
+		mtab->bmap = 0; // from group descriptor
+		mtab->imap = 0;
+		mtab->iblock = 0;
 	}
+
+	printf("init done\n");
 }
 
 // load root INODE and set root pointer to it
@@ -119,11 +122,10 @@ int mount_root(char *disk)
 	// copy super block info into mtable[0]
 	ninodes = mp->ninodes = sp->s_inodes_count;
 	nblocks = mp->nblocks = sp->s_blocks_count;
-	strcpy(mp->devName, dev);
-	strcpy(mp->mntName, "/");
 	get_block(dev, 2, buf);
 	gp = (GD*)buf;
 
+	printf("test\n");
 	bmap = mp->bmap = gp->bg_block_bitmap;
 	imap = mp->imap = gp->bg_inode_bitmap;
 	inode_start = gp->bg_inode_table;
@@ -162,6 +164,7 @@ int main(int argc, char* argv[])
 	char line[128], cmd[32], pathname[128], pathname2[128];
 
 	init();
+	printf("%s\n", argv[1]);
 	mount_root(argv[1]);
 	printf("root refCount = %d\n", root->refCount);	
 

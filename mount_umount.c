@@ -4,6 +4,7 @@ int mount()    /*  Usage: mount filesys mount_point OR mount */
 	char buf[BLKSIZE];
 	MINODE *mip;
 	SUPER* sp;
+	char* filesys, mount_point;
 	printf("filesys: %s	mount_point: %s\n", filesys, mount_point);
 
 	// 1. Ask for filesys (a pathname) and mount_point (a pathname also).
