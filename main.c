@@ -34,6 +34,7 @@ int   n;         // number of component strings
 int fd, dev;
 int nblocks, ninodes, bmap, imap, inode_start; // disk parameters
 char buf[BLKSIZE];
+char* disk = "mydisk";
 
 #include "util.c"
 #include "cd_ls_pwd.c"
@@ -92,6 +93,9 @@ int init()
 // load root INODE and set root pointer to it
 int mount_root()
 {
+	int user;
+	char userline[128];
+
 	printf("mount_root()\n");
 	printf("checking EXT2 FS ....");
 	if ((fd = open(disk, O_RDWR)) < 0) {
@@ -116,7 +120,7 @@ int mount_root()
 	// copy super block info into mtable[0]
 	ninodes = mp->ninodes = sp->s_inodes_count;
 	nblocks = mp->nblocks = sp->s_blocks_count;
-	strcpy(mp->devName, rootdev);
+	strcpy(mp->devName, dev);
 	strcpy(mp->mntName, "/");
 	get_block(dev, 2, buf);
 	gp = (GD*)buf;
@@ -128,36 +132,35 @@ int mount_root()
 	root = iget(dev, 2);
 	mp->mntDirPtr = root; // double link
 
-	printf("running on proc[0] or proc[1]? (0 / 1)\n");
-	fgets(userline, 128, stdin);
-	userline[strlen(userline) - 1] = 0;
-	if (userline[0] == 0)
-		continue;
-	sscanf(userline, "%d", user);
+	//printf("running on proc[0] or proc[1]? (0 / 1)\n");
+	//fgets(userline, 128, stdin);
+	//userline[strlen(userline) - 1] = 0;
+	//if (userline[0] == 0)
+	//	continue;
+	//sscanf(userline, "%d", user);
 
-	if (user == 0) {
+	//if (user == 0) {
 		printf("creating P0 as running process\n");
 		running = &proc[0];
 		running->status = READY;
 		running->cwd = iget(dev, 2);
-	}
+	//}
 
-	else if (user == 1) {
-		printf("creating P1 as running process\n");
-		running = &proc[1];
-		running->status = READY;
-		running->cwd = iget(dev, 2);
-	}
+	//else if (user == 1) {
+	//	printf("creating P1 as running process\n");
+	//	running = &proc[1];
+	//	running->status = READY;
+	//	running->cwd = iget(dev, 2);
+	//}
 
 	printf("mount : %s mounted on / \n", disk);
 	return 0;
 }
 
-char* disk = "mydisk";
 int main(int argc, char* argv[])
 {
 	int ino, user;
-	char line[128], userline[128], cmd[32], pathname[128], pathname2[128];
+	char line[128], cmd[32], pathname[128], pathname2[128];
 
 	init();
 	mount_root();
