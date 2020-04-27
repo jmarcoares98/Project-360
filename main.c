@@ -34,7 +34,6 @@ int   n;         // number of component strings
 int fd, dev;
 int nblocks, ninodes, bmap, imap, inode_start; // disk parameters
 char buf[BLKSIZE];
-char* disk = "mydisk";
 
 #include "util.c"
 #include "cd_ls_pwd.c"
@@ -91,10 +90,10 @@ int init()
 }
 
 // load root INODE and set root pointer to it
-int mount_root()
+int mount_root(char *disk)
 {
 	int user;
-	char userline[128];
+	char line[128], userline[128];
 
 	printf("mount_root()\n");
 	printf("checking EXT2 FS ....");
@@ -163,7 +162,7 @@ int main(int argc, char* argv[])
 	char line[128], cmd[32], pathname[128], pathname2[128];
 
 	init();
-	mount_root();
+	mount_root(argv[1]);
 	printf("root refCount = %d\n", root->refCount);	
 
 	// WRTIE code here to create P1 as a USER process
