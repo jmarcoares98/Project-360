@@ -129,6 +129,8 @@ int mount_root(char *disk)
 	bmap = mp->bmap = gp->bg_block_bitmap;
 	imap = mp->imap = gp->bg_inode_bitmap;
 	inode_start = gp->bg_inode_table;
+	strcpy(mp->devName, disk);
+	strcpy(mp->mntName, "/");
 	printf("bmp=%d imap=%d inode_start = %d\n", bmap, imap, inode_start);
 	root = iget(dev, 2);
 	mp->mntDirPtr = root; // double link
@@ -164,7 +166,6 @@ int main(int argc, char* argv[])
 	char line[128], cmd[32], pathname[128], pathname2[128];
 
 	init();
-	printf("%s\n", argv[1]);
 	mount_root(argv[1]);
 	printf("root refCount = %d\n", root->refCount);	
 
@@ -215,7 +216,7 @@ int main(int argc, char* argv[])
 		else if (strcmp(cmd, "pfd") == 0)
 			pfd();
 		else if (strcmp(cmd, "mount") == 0)
-			mount();
+			mount(pathname, pathname2);
 		else if (strcmp(cmd, "umount") == 0)
 			umount(pathname);
 		else if (strcmp(cmd, "quit") == 0)

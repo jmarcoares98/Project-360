@@ -83,17 +83,18 @@ int rmdir(char* pathname)
 
 	// ASSUME passed the above checks.
 	// get parent DIR's ino and Minode (pointed by pip);
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < 15; i++) {
 		if (ip->i_block[i] != 0)
 			bdalloc(mip->dev, ip->i_block[i]);
 	}
+
 	idalloc(mip->dev, mip->ino);
 
 	strcpy(path, pathname);
 	strcpy(parent, dirname(pathname));
 	strcpy(child, basename(pathname));
 
-	tino = getino(mip->dev, parent);
+	tino = getino(mip->dev, pathname);
 	tip = iget(mip->dev, tino);
 	ip = &(tip->INODE);
 	iput(mip); // (which clears mip->refCount = 0);
@@ -127,6 +128,9 @@ int rm_child(MINODE* parent, char* name)
 	int good = 0, size;
 
 	for (int i = 0; i < 12; i++) {
+		if (parent->INODE.i_block[i] == 0) 
+			return;
+
 		// getting data block assuming there is only 12
 		get_block(dev, parent->INODE.i_block[i], buf);
 		cp = buf;

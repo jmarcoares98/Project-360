@@ -74,6 +74,11 @@ int make_dir(char* name)
 
 	// 1. pahtname = "/a/b/c" start = root;         dev = root->dev;
 	//             =  "a/b/c" start = running->cwd; dev = running->cwd->dev;
+	if (name[0] == '/')
+		dev = root->dev;
+	else
+		dev = running->cwd->dev;
+
 	char parent[128], child[128], path1[128], path2[128];
 	int ino = 0, start, mk;
 
