@@ -7,7 +7,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	char buf[BLKSIZE];
 	MINODE* mip;
 	SUPER* sp;
-	MOUNT* mt;
+	MTABLE* mt;
 	GD* gp;
 
 	printf("filesys: %s	mount_point: %s\n", filesys, mount_point);
@@ -20,7 +20,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	// 2. Check whether filesys is already mounted: 
 	for (i = 0; i < NMOUNT; i++) {
 
-		if (strcmp(mtable[i].devName, filesys) == 0) { // If already mounted, reject;
+		if (strcmp(mp[i].devName, filesys) == 0) { // If already mounted, reject;
 			printf("MOUNT FAILED: '%s' ALREADY MOUNTED\n", filesys);
 			return -1;
 		}
@@ -28,7 +28,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	}
 
 	for (i = 0; i < NMOUNT; i++) {
-		if (mtable[i].dev == 0) { // allocate a free MOUNT table entry (whose dev=0 means FREE).
+		if (mp[i].dev == 0) { // allocate a free MOUNT table entry (whose dev=0 means FREE).
 			md = i;
 			break;
 		}
@@ -65,7 +65,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	get_block(dev2, GDBLOCK, buf); // getting GDBLOCK
 	gp = (GD*)buf;
 
-	mt = &mtable[md];
+	mt = &mp[md];
 	mt->dev = dev2;
 	mt->ninodes = sp->s_inodes_count;
 	mt->nblocks = sp->s_blocks_count;
@@ -73,7 +73,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	mt->imap = gp->bg_inode_bitmap;
 	mt->iblock = gp->bg_inode_table;
 	mt->mntDirPtr = mip;
-	strcpy(mt->devname, filesys);
+	strcpy(mt->devName, filesys);
 	strcpy(mt->mntName, mount_point);
 
 	// 7. Mark mount_point's minode as being mounted on and let it point at the
@@ -84,7 +84,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	if (mip)
 		iput(mip);
 	if (dev2 > 0)
-		myclose(dev2);
+		my_close(dev2);
 
 	printf("MOUNT: mounted %s on %s\n", filesys, mount_point);
 	return 0; // for SUCCESS;
@@ -94,30 +94,30 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 int umount(char* filesys)
 {
 	int i, dv;
-	MOUNT* mt;
+	MTABLE* mt;
 
 	// 1. Search the MOUNT table to check filesys is indeed mounted.
 	for (i = 0; i < NMOUNT; i++) {
-		if (strcmp(mtable[i].devName, filesys) == 0) { // If already mounted, reject;
+		if (strcmp(mp[i].devName, filesys) == 0) { // If already mounted, reject;
 			printf("MOUNT FAILED: '%s' ALREADY MOUNTED\n", filesys);
 			return -1;
 		}
 	}
 
-	dv = mtable[i].dev;
+	dv = mp[i].dev;
 	// 2. Check whether any file is still active in the mounted filesys;
-	for (i = 0; i < NMINODES; i++) {
-		if (minode[i]->dev == dv && minode[i]->ino != 2) {
+	for (i = 0; i < NMINODE; i++) {
+		if (mp[i].dev == dv && minode[i].ino != 2) {
 			printf("INODE: %d\n", minode[i].ino);
 			return 1;
 		}
 	}
 
 	// 3. Find the mount_point's inode (which should be in memory while it's mounted on). 
-	mt = &mtable[i];
+	mt = &mp[i];
 
 	iput(mt->mntDirPtr);
-	myclose(mt->dev);
+	my_close(mt->dev);
 
 	mt->dev = 0;
 	mt->ninodes = 0;
@@ -126,7 +126,7 @@ int umount(char* filesys)
 	mt->imap = 0;
 	mt->iblock = 0;
 	mt->mntDirPtr = 0;
-	memset(mt->devname, 0, 64);
+	memset(mt->devName, 0, 64);
 	memset(mt->mntName, 0, 64);
 
 	// 4. return 0 for SUCCESS;

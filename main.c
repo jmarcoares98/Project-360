@@ -20,8 +20,7 @@
 
 // global variables
 MINODE minode[NMINODE];
-MINODE mtable[NMTABLE];
-MTABLE* mp;
+MTABLE mp[NMTABLE];
 MINODE* root;
 SUPER* sp;
 
@@ -78,7 +77,7 @@ int init()
 	proc[NPROC - 1].next = &proc[0]; // circular list
 
 	for (i = 0; i < NMTABLE; i++) { // initialize mtables as FREE
-		mtab = &mtable[i];
+		mtab = &mp[i];
 		mtab->dev = 0;
 		mtab->ninodes = 0; // from superblock
 		mtab->nblocks = 0;
@@ -117,7 +116,6 @@ int mount_root(char *disk)
 	}
 	printf("EXT2 FS OK\n");
 	// fill mount table mtable[0] with rootdev information
-	mp = &mtable[0]; // use mtable[0]
 	mp->dev = dev;
 	// copy super block info into mtable[0]
 	ninodes = mp->ninodes = sp->s_inodes_count;
