@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_point OR mount */
 {	
 	int ino, dev2, i, md;
@@ -7,6 +8,17 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	MOUNT* mt;
 	GD* gp;
 	
+=======
+// mount <filesys> <mount_point>
+// mounts a filesystem to a mount_point directory
+// allows the file system to include other file sys as parts of the existing file sys
+int mount(char *filesys, char* mount_point)    /*  Usage: mount filesys mount_point OR mount */
+{
+	int ino;
+	char buf[BLKSIZE];
+	MINODE *mip;
+	SUPER* sp;
+>>>>>>> f62225f6b4bb2aca1162adcb2cd08cdc6712b96b
 	printf("filesys: %s	mount_point: %s\n", filesys, mount_point);
 
 	// 1. Ask for filesys (a pathname) and mount_point (a pathname also).
@@ -37,9 +49,14 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 
 
 	// 3. open filesys for RW; use its fd number as the new DEV;
+<<<<<<< HEAD
 	dev2 = open_file(filesys, "0");
 
 	if (dev2 < 0)
+=======
+	dev = open_file(filesys, "2");
+	if (dev < 0)
+>>>>>>> f62225f6b4bb2aca1162adcb2cd08cdc6712b96b
 		printf("MOUNT: unable to open %s\n", filesys);
 
 	// Check whether it's an EXT2 file system: if not, reject.
@@ -57,14 +74,18 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	mip  = iget(dev, ino);    
 
 	// 5. Check mount_point is a DIR.  
-	// Check mount_point is NOT busy (e.g. can't be someone's CWD)
 	if (!S_ISDIR(mip->INODE.i_mode))
 	{
 		printf("ERROR: mount_point %s is not a DIR\n");
 		return -1;
 	}
+<<<<<<< HEAD
 
 	memset(buf, 0, BLKSIZE);
+=======
+	// Check mount_point is NOT busy (e.g. can't be someone's CWD)
+
+>>>>>>> f62225f6b4bb2aca1162adcb2cd08cdc6712b96b
 
 	// 6. Record new DEV in the MOUNT table entry;
 	get_block(dev2, GDBLOCK, buf); // getting GDBLOCK
