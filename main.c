@@ -116,22 +116,21 @@ int mount_root(char *disk)
 	}
 	printf("EXT2 FS OK\n");
 	// fill mount table mtable[0] with rootdev information
-	mp->dev = dev;
+	mp[0].dev = dev;
 	// copy super block info into mtable[0]
-	ninodes = mp->ninodes = sp->s_inodes_count;
-	nblocks = mp->nblocks = sp->s_blocks_count;
+	ninodes = mp[0].ninodes = sp->s_inodes_count;
+	nblocks = mp[0].nblocks = sp->s_blocks_count;
 	get_block(dev, 2, buf);
 	gp = (GD*)buf;
 
-	printf("test\n");
-	bmap = mp->bmap = gp->bg_block_bitmap;
-	imap = mp->imap = gp->bg_inode_bitmap;
+	bmap = mp[0].bmap = gp->bg_block_bitmap;
+	imap = mp[0].imap = gp->bg_inode_bitmap;
 	inode_start = gp->bg_inode_table;
-	strcpy(mp->devName, disk);
-	strcpy(mp->mntName, "/");
+	strcpy(mp[0].devName, disk);
+	strcpy(mp[0].mntName, "/");
 	printf("bmp=%d imap=%d inode_start = %d\n", bmap, imap, inode_start);
 	root = iget(dev, 2);
-	mp->mntDirPtr = root; // double link
+	mp[0].mntDirPtr = root; // double link
 
 	//printf("running on proc[0] or proc[1]? (0 / 1)\n");
 	//fgets(userline, 128, stdin);
@@ -154,7 +153,7 @@ int mount_root(char *disk)
 	//	running->cwd = iget(dev, 2);
 	//}
 
-	printf("mount : %s mounted on / \n", disk);
+	printf("MOUNT : %s mounted on / \n", disk);
 	return 0;
 }
 

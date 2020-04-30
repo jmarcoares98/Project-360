@@ -5,7 +5,7 @@ int chdir(char* pathname)
 	MINODE* mip;
 
 	// (1). int ino = getino(pathname); // return error if ino=0
-	ino = getino(dev, pathname);
+	ino = getino(pathname);
 
 	if (ino == 0)
 		return -1;
@@ -31,6 +31,7 @@ int ls_file(MINODE* mip, char *name)
 {
 	INODE* ip = &mip->INODE;
 	u16 type = ip->i_mode & 0xF000;
+
 
 	if (type == 0x4000)			// prints out that its a directory
 		printf("dir");
@@ -101,26 +102,24 @@ int ls(char* pathname)
 	INODE* ip;
 	int ino;
 
-	printf("mode  lnk  gid     uid	    size        name\n");
+	printf("mode  cnt  gid     uid	    size        name\n");
 	// goes through current working directory
 	if (strcmp(pathname, "") == 0) {
-		mip = iget(running->cwd->dev, running->cwd->ino);
+		dev = running->cwd->dev;
+		ino = running->cwd->ino;
+		mip = iget(dev, ino);
 		ls_dir(mip);
 	}
 
 	else if (pathname) {
-		if (pathname[0] == '/')
-			mip = root;
-
-		ino = getino(mip, pathname);
+		ino = getino(pathname);
 		mip = iget(dev, ino);
-		ip = &mip->INODE;
 
-		if (!S_ISDIR(ip->i_mode)) {
-			printf("NOT A DIRECTORY\n");
-			iput(mip);
-			return;
-		}
+		//if (!S_ISDIR(ip->i_mode)) {
+		//	printf("NOT A DIRECTORY\n");
+		//	iput(mip);
+		//	return;
+		//}
 
 		ls_dir(mip);
 		iput(mip);
@@ -137,7 +136,12 @@ int ls(char* pathname)
 int pwd(MINODE* wd)
 {
 	printf("***** pwd *****\n");
-	rpwd(running->cwd);
+	if (wd == root)
+		printf("/");
+	else {
+		printf("/");
+		rpwd(wd);
+	}
 	printf("\n");
 }
 
@@ -150,49 +154,24 @@ int pwd(MINODE* wd)
 void rpwd(MINODE* wd)
 {
 	MINODE* pip;
-	INODE* ip;
-	char buf[BLKSIZE], * cp, pathname[64];
+	char buf[BLKSIZE], * cp, my_name[64];
 	DIR* dp = (DIR*)buf;
 	int my_ino, parent_ino;
-	ip = &wd->INODE;
 
-
-	if (wd->ino == root->ino) {
-		printf("/");
+	//  if (wd==root) return;
+	if (wd->ino == root->ino)
 		return;
-	}
+	
+	// from wd->INODE.i_block[0], get my_ino and parent_ino
+	parent_ino = findino(wd, &my_ino);
+	pip = iget(dev, parent_ino);
 
-	get_block(dev, ip->i_block[0], buf);
-	cp = buf + dp->rec_len;
-	dp = (DIR*)cp;
+	// from pip->INODE.i_block[]: get my_name string by my_ino as LOCAL
+	findmyname(pip, my_ino, my_name);
 
-	my_ino = search(wd, dp->name);
-	pip = iget(dev, my_ino);
 	rpwd(pip); // recursive call rpwd(pip) with parent minode
-
-	ip = &pip->INODE;
-
-	for (int i = 0; i < 12; i++)
-	{
-
-		if (ip->i_block[i] == 0) { break; }
-
-		get_block(pip->dev, ip->i_block[i], buf);
-		cp = buf;
-		dp = (DIR*)buf;
-		while (cp < buf + BLKSIZE)
-		{
-			if (wd->ino == dp->inode)
-			{
-				strncpy(pathname, dp->name, dp->name_len);
-			}
-			cp += dp->rec_len;
-			dp = (DIR*)cp;
-		}
-	}
-	pathname[dp->name_len] = '\0';
-	printf("%s/", pathname);
-
+	
+	printf("%s/", my_name);
 }
 
 /************* quit **************/

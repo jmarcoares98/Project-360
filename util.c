@@ -73,7 +73,13 @@ MINODE* iget(int dev, int ino)
 
 	for (i = 0; i < NMINODE; i++) {
 		mip = &minode[i];
-		if (mip->refCount == 0) {
+		if (mip->refCount > 0) {
+			if (mip->dev == dev && mip->ino == ino) {
+				mip->refCount++;
+				return mip;
+			}
+		}
+		else if (mip->refCount == 0) {
 			//printf("allocating NEW minode[%d] for [%d %d]\n", i, dev, ino);
 			mip = mialloc();
 			mip->refCount++;
@@ -116,11 +122,11 @@ void iput(MINODE* mip)
 	blk = (ino - 1) / 8 + inode_start;
 	offset = (ino - 1) % 8;
 
-	get_block(dev, blk, buf);
+	get_block(mip->dev, blk, buf);
 
 	ip = (INODE*)buf + offset;	// ip points at INODE
 	*ip = mip->INODE;			// copy mp->INODE to INODE
-	put_block(dev, blk, buf); 	// write back to disk
+	put_block(mip->dev, blk, buf); 	// write back to disk
 	midalloc(mip);				// mip->refCount = 0;
 	mip->dirty = 0;
 }
@@ -162,55 +168,118 @@ int search(MINODE* mip, char* name)
 	return 0;
 }
 
-int getino(int dev, char* pathname)
+
+int getino(char* pathname)
 {
-	int i, ino, blk, disp;
+	int i, ino, blk, disp, j, newdev;
 	char buf[BLKSIZE];
 	INODE* ip;
-	MINODE* mip;
+	MINODE* mip, * newmip;
+	MTABLE* mt;
+
 
 	//printf("getino: pathname=%s\n", pathname);
 	if (strcmp(pathname, "/") == 0)
 		return 2;
 
-	// starting mip = root OR CWD
-	if (pathname[0] == '/')
-		mip = root;
-	else
-		mip = running->cwd;
 
-	mip->refCount++;         // because we iput(mip) later
+	// starting mip = root OR CWD
+	if (pathname[0] == '/') {
+		dev = root->dev;
+		ino = root->ino;
+	}
+	else {
+		dev = running->cwd->dev;
+		ino = running->cwd->ino;
+	}
+
 
 	n = tokenize(pathname);
 
+	printf("INO in getino: %d\n", ino);
+	mip = iget(dev, ino);
+
 	for (i = 0; i < n; i++) {
-		//printf("===========================================\n");
-		//printf("getino: i=%d name[%d]=%s\n", i, i, name[i]);
-		if (!S_ISDIR(mip->INODE.i_mode)) { // check DIR type
-			printf("%s NOT A DIRECTORY\n", name[i]);
+		if (strcmp(name[i], "..") == 0 && mip->dev != root->dev && mip->ino == 2) {
+			printf("UP cross mounting point\n");
+
+			for (j = 0; j < NMTABLE; j++) {
+				if (mip->dev == mp[j].dev) {
+					break;
+				}
+			}
+
+			newmip = mp[j].mntDirPtr;
+
 			iput(mip);
-			return 0;
+			mip = iget(newmip->dev, newmip->ino);
+			dev = mip->dev;
+			ino = search(mip, "..");
+
+			iput(mip);
+			mip = iget(dev, ino);
 		}
 
 		ino = search(mip, name[i]);
-
+		newmip = iget(dev, ino);
 		if (!ino) {
-			iput(mip);
 			return 0;
 		}
-		iput(mip); // release current minode
-		mip = iget(dev, ino); // switch to new minode
+		iput(mip);
+		mip = newmip;
+
+
+		if (mip->mounted == 1) {
+			printf("DOWN cross mounting point\n");
+			dev = mip->mptr->dev;
+			iput(mip);
+			mip = iget(dev, 2);
+		}
 	}
 
 	iput(mip);
-	return ino;
+	return mip->ino;
 }
 
 int findmyname(MINODE* parent, u32 myino, char* myname)
 {
-	// WRITE YOUR code here:
-	// search parent's data block for myino;
-	// copy its name STRING to myname[ ];
+	char buf[BLKSIZE], * cp;
+	DIR* dp;
+	INODE* ip;
+
+	if (myino == root->ino) {
+		strcpy(myname, "/");
+		return;
+	}
+
+	if (!parent) {
+		printf("NO PARENT\n");
+		return;
+	}
+
+	ip = &parent->INODE;
+
+	for (int i = 0; i < 12; i++){
+		if (ip->i_block[i] == 0) { break; }
+
+		get_block(parent->dev, ip->i_block[i], buf);
+		cp = buf;
+		dp = (DIR*)buf;
+
+		while (cp < buf + BLKSIZE){
+			if (dp->inode == myino){
+				strncpy(myname, dp->name, dp->name_len);
+				myname[dp->name_len] = 0;
+				return 0;
+			}
+			else {
+				cp += dp->rec_len;
+				dp = (DIR*)cp;
+			}
+		}
+	}
+
+	return;
 }
 
 int findino(MINODE* mip, u32* myino) // myino = ino of . return ino of ..
@@ -221,8 +290,8 @@ int findino(MINODE* mip, u32* myino) // myino = ino of . return ino of ..
 	get_block(mip->dev, mip->INODE.i_block[0], buf);
 	cp = buf;
 	dp = (DIR*)buf;
-	*myino = dp->inode;
+	*myino = dp->inode; // .
 	cp += dp->rec_len;
 	dp = (DIR*)cp;
-	return dp->inode;
+	return dp->inode; // ..
 }

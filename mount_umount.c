@@ -3,9 +3,9 @@
 // allows the file system to include other file sys as parts of the existing file sys
 int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_point OR mount */
 {
-	int ino, dev2, i, md;
+	int ino, dv, fd, i, md;
 	char buf[BLKSIZE];
-	MINODE* mip;
+	MINODE* mip, *mtdip;
 	SUPER* sp;
 	MTABLE* mt;
 	GD* gp;
@@ -15,7 +15,7 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	// 1. Ask for filesys (a pathname) and mount_point (a pathname also).
 	// If mount with no parameters: display current mounted filesystems.
 	if (filesys[0] == 0)
-		printf("just display curr mount filesystems\n");
+		printf("Current Mount\n");
 
 	// 2. Check whether filesys is already mounted: 
 	for (i = 0; i < NMOUNT; i++) {
@@ -34,14 +34,18 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 		}
 	}
 
-	dev2 = open_file(filesys, "0");
+	fd = open(filesys, O_RDWR);
+	printf("DEV: %d\n", fd);
 
-	if (dev < 0)
+	if (fd < 0) {
 		printf("MOUNT: unable to open %s\n", filesys);
+		return -1;
+	}
 
 	// Check whether it's an EXT2 file system: if not, reject.
-	get_block(dev, SUPERBLOCK, buf);  // SUPERBLOCK = 1
+	get_block(fd, SUPERBLOCK, buf);  // SUPERBLOCK = 1
 	sp = (SUPER*)buf;
+
 	if (sp->s_magic != 0xEF53)
 	{
 		printf("ERROR not an EXT2 File Sys!\n");
@@ -49,8 +53,11 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	}
 	printf("passed s_magic\n");
 
+	get_block(fd, GDBLOCK, buf); // getting GDBLOCK
+	gp = (GD*)buf;
+
 	// 4. For mount_point: find its ino, then get its minode:
-	ino = getino(dev2, mount_point);
+	ino = getino(mount_point);
 	mip = iget(dev, ino);
 
 	// 5. Check mount_point is a DIR.  
@@ -59,14 +66,9 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 		return -1;
 	}
 
-	memset(buf, 0, BLKSIZE);
-
 	// 6. Record new DEV in the MOUNT table entry;
-	get_block(dev2, GDBLOCK, buf); // getting GDBLOCK
-	gp = (GD*)buf;
-
 	mt = &mp[md];
-	mt->dev = dev2;
+	mt->dev = fd;
 	mt->ninodes = sp->s_inodes_count;
 	mt->nblocks = sp->s_blocks_count;
 	mt->bmap = gp->bg_block_bitmap;
@@ -81,10 +83,8 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 	mip->mounted = 1;
 	mip->mptr = mt;
 
-	if (mip)
-		iput(mip);
-	if (dev2 > 0)
-		my_close(dev2);
+	//close(dev2);
+
 
 	printf("MOUNT: mounted %s on %s\n", filesys, mount_point);
 	return 0; // for SUCCESS;

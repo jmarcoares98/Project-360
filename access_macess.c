@@ -8,7 +8,7 @@ int access(char* pathname, char mode) // mode ='r', 'w', 'x'
 		return 1;
 
 	// get INODE of pathname into memory;
-	ino = getino(running->cwd, pathname);
+	ino = getino(pathname);
 	mip = iget(dev, ino);
 
 	// if owner     : return OK if rwx --- --- mode bit is on

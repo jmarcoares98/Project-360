@@ -8,7 +8,7 @@ int link(char* old_file, char* new_file)
 	MINODE *omip, *pmip;
 	// (1). get the INODE of /a/b/c into memory: mip->minode[ ]
     printf("check\n");
-	oino = getino(dev,old_file);
+	oino = getino(old_file);
 	if (oino == 0)
 	{
 		return -1;
@@ -22,14 +22,14 @@ int link(char* old_file, char* new_file)
 	}
 	// (3). creat new_file with the same inode number of old_file
     printf("check\n");
-	if (getino(dev,new_file) == 0)
+	if (getino(new_file) == 0)
 	{
         printf("IN if statement\n");
 		parent = dirname(new_file);
         printf("parent: %s\n", parent);
 		child = basename(new_file);
         printf("child: %s\n", child);
-		pino = getino(dev,parent);
+		pino = getino(parent);
 		pmip = iget(dev, pino);
 		// create entry in new parent DIR with same inode number of old_file
 		enter_name(pmip, oino, child);
@@ -54,7 +54,7 @@ int unlink(char* filename)
 	char *child, *parent;
 	MINODE *mip, *pmip;
 	// (1). get pathname's INODE into memory
-	ino = getino(dev, filename);
+	ino = getino(filename);
 	if (ino == 0)
 	{
 		return -1;
@@ -68,7 +68,7 @@ int unlink(char* filename)
 	// (3). remove name entry from parent DIR's data block
 	parent = dirname(filename);
 	child = basename(filename);
-	pino = getino(dev,parent);
+	pino = getino(parent);
 	pmip = iget(dev, pino);
 	rm_child(pmip, child);
 	pmip->dirty = 1;

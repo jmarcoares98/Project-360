@@ -82,6 +82,7 @@ int make_dir(char* name)
 	char parent[128], child[128], path1[128], path2[128];
 	int ino = 0, start, mk;
 
+	printf("DEV: %d\n", dev);
 	// 2. Let  
 	//    parent = dirname(pathname);   parent = "/a/b" OR "a/b"
 	strcpy(path1, name);
@@ -93,8 +94,9 @@ int make_dir(char* name)
 	strcpy(child, basename(path2));
 	printf("child: %s\n", child);
 
+
 	// 3. get minode of parent
-	ino = getino(running->cwd, parent);
+	ino = getino(parent);
 	pip = iget(dev, ino);
 
 	// check that parent INODE is a dir and that child does not exist in par dir
@@ -108,7 +110,7 @@ int make_dir(char* name)
 		return;
 	}
 
-	if (getino(running->cwd, name) != 0)
+	if (getino(name) != 0)
 	{
 		printf("INVALID: %s ALREADY EXISTS!\n", name);
 		return;
@@ -117,12 +119,7 @@ int make_dir(char* name)
 	// 4. call mymkdir(pip, child);
 	mymkdir(pip, child);
 
-	pip->INODE.i_links_count++;
-	pip->INODE.i_atime = time(0L);
-	pip->dirty = 1;
-
-	// 6. iput(pip);
-	iput(pip);
+	return;
 }
 
 int mymkdir(MINODE* pip, char* name)
@@ -200,7 +197,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 	char buf[BLKSIZE];
 	char* cp;
 	DIR* dp;
-	int idea_len = 0, need_len = 0, remain = 0, bnum = 0, i = 0, j = 0, newrec = 0;
+	int idea_len = 0, need_len = 0, remain = 0, bno = 0, i = 0, j = 0, newrec = 0;
 	int name_len = strlen(myname);
 
 
@@ -211,12 +208,12 @@ int enter_name(MINODE* pip, int myino, char* myname)
 			break;
 
 		// Step to the last entry in a data block 
-		bnum = ip->i_block[i];
+		bno = ip->i_block[i];
 
 		
-		get_block(dev, bnum, buf);
+		get_block(dev, bno, buf);
+		dp = (DIR*)buf;
 		cp = buf;
-		dp = (DIR*)cp;
 
 		// step to LAST entry in block: int blk = parent->INODE.i_block[i];
 		while ((dp->rec_len + cp) < buf + BLKSIZE) {
@@ -224,7 +221,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 			dp = (DIR*)cp;
 		}
 
-		printf("LAST ENTRY: %s...\n", dp->name);
+		printf("LAST ENTRY: %s\n", dp->name);
 		cp = (char*)dp;
 
 		need_len = 4 * ((8 + name_len + 3) / 4);  // a multiple of 4
@@ -234,7 +231,7 @@ int enter_name(MINODE* pip, int myino, char* myname)
 
 		// Let remain = LAST entry's rec_len - its IDEAL_LENGTH;
 		remain = dp->rec_len - idea_len;
-		printf("REMAINING: %d...\n", remain);
+		printf("REMAINING: %d\n", remain);
 
 		if (remain >= need_len) {
 			dp->rec_len = idea_len;
@@ -248,20 +245,20 @@ int enter_name(MINODE* pip, int myino, char* myname)
 			dp->file_type = EXT2_FT_DIR;
 			strcpy(dp->name, myname);
 
-			put_block(dev, bnum, buf);
+			put_block(dev, bno, buf);
 			return 1;
 		}
 	}
 
 	// Reach here means: NO space in existing data block(s)
 	// Allocate a new data block; IN parent's by BLKSIZE;
-	bnum = balloc(dev);
-	ip->i_block[i] = bnum;
+	bno = balloc(dev);
+	ip->i_block[i] = bno;
 
 	ip->i_size += BLKSIZE;
 	pip->dirty = 1;
 
-	get_block(dev, bnum, buf);
+	get_block(dev, bno, buf);
 
 	dp = (DIR*)buf;
 	cp = buf;
@@ -269,11 +266,17 @@ int enter_name(MINODE* pip, int myino, char* myname)
 	dp->inode = myino;
 	dp->name_len = name_len;
 	dp->rec_len = BLKSIZE;
-	//dp->file_type = EXT2_FT_DIR;
 	strncpy(dp->name, myname, dp->name_len);
 
 	// write data block to disk
-	put_block(pip->dev, bnum, buf);
+	put_block(pip->dev, bno, buf);
+
+
+	pip->INODE.i_links_count++;
+	pip->INODE.i_atime = time(0L);
+	pip->dirty = 1;
+
+	iput(pip);
 
 	return 1;
 }
@@ -295,7 +298,7 @@ int creat_file(char* name)
 	printf("child: %s\n", child);
 
 	//get minode of parent
-	ino = getino(running->cwd, parent);
+	ino = getino(parent);
 	mip = iget(dev, ino);
 
 	// check that parent INODE is a dir and that child does not exist in par dir
@@ -309,7 +312,7 @@ int creat_file(char* name)
 		return;
 	}
 
-	if (getino(running->cwd, name) != 0)
+	if (getino(name) != 0)
 	{
 		printf("INVALID: %s ALREADY EXISTS!\n", name);
 		return;

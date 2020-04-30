@@ -54,15 +54,20 @@ int bdalloc(int dev, int blk) // deallocate a blk number
 
 int rmdir(char* pathname)
 {
-	int ino, tino;
-	MINODE* mip, * tip;
-	INODE* ip;
+	int ino, parent_ino;
+	MINODE* mip, * pmip;
+	INODE* ip, * pip;
 	char parent[256], child[256], path[256], name[256];
 	char* cp;
 	DIR* dp;
 
+	if (pathname[0] == '/')
+		dev = root->dev;
+	else
+		dev = running->cwd->dev;
+
 	// get inumber of pathname
-	ino = getino(dev, pathname);
+	ino = getino(pathname);
 
 	// get its minode[ ] pointer:
 	mip = iget(dev, ino);
@@ -81,6 +86,10 @@ int rmdir(char* pathname)
 
 	}
 
+	parent_ino = findino(mip, &ino);
+	pmip = iget(mip->dev, parent_ino);
+	pip = &(pmip->INODE);
+
 	// ASSUME passed the above checks.
 	// get parent DIR's ino and Minode (pointed by pip);
 	for (int i = 0; i < 15; i++) {
@@ -88,31 +97,26 @@ int rmdir(char* pathname)
 			bdalloc(mip->dev, ip->i_block[i]);
 	}
 
-	idalloc(mip->dev, mip->ino);
+	idalloc(mip->dev, ino);
 
 	strcpy(path, pathname);
-	strcpy(parent, dirname(pathname));
 	strcpy(child, basename(pathname));
 
-	tino = getino(mip->dev, pathname);
-	tip = iget(mip->dev, tino);
-	ip = &(tip->INODE);
-	iput(mip); // (which clears mip->refCount = 0);
 
 	// remove child's entry from parent directory
-	rm_child(tip, child);
+	rm_child(pmip, child);
 
 	// decrement pip's link_count by 1; 
-	ip->i_links_count -= 1;
+	pip->i_links_count -= 1;
 
 	// touch pip's atime, mtime fields;
-	ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);
+	pip->i_atime = pip->i_ctime = pip->i_mtime = time(0L);
 
 	// mark pip dirty;
-	tip->dirty = 1;
+	pmip->dirty = 1;
 
 	// iput(pip);
-	iput(tip);
+	iput(pmip);
 
 	// return SUCCESS;
 	return 1;

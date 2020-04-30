@@ -188,7 +188,7 @@ int check_file(char *path)
 	char pathname[128];
 	strcpy(pathname, path);
 
-	ino = getino(running->cwd, pathname);
+	ino = getino(pathname);
 
 	if (ino != 0) {		// the file exists
 		printf("FILE EXISTS...\n");

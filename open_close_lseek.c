@@ -27,7 +27,7 @@ int open_file(char* filename, char* flags)
 	else 
 		dev = running->cwd->dev;
 
-	ino = getino(dev, filename);
+	ino = getino(filename);
 	if (ino == 0)
 	{
 		printf("ERROR: No such file!\n");
