@@ -14,8 +14,14 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 
 	// 1. Ask for filesys (a pathname) and mount_point (a pathname also).
 	// If mount with no parameters: display current mounted filesystems.
-	if (filesys[0] == 0)
-		printf("Current Mount\n");
+	if (filesys[0] == 0) {
+		printf("Mounted Filesystems: \n");
+		for (int i = 0; i < NMTABLE; i++) 
+			printf("Index: %d\tName: %s\tDevice: %d\tMounted On: %s\n\n", i + 1, mp[i].devName, mp[i].dev, mp[i].mntName);
+		
+		return -1;
+	}
+		
 
 	// 2. Check whether filesys is already mounted: 
 	for (i = 0; i < NMOUNT; i++) {
