@@ -14,40 +14,34 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 
 	// 1. Ask for filesys (a pathname) and mount_point (a pathname also).
 	// If mount with no parameters: display current mounted filesystems.
-	if (filesys[0] == 0)
-		printf("just display curr mount filesystems\n");
+	if (filesys[0] == 0) {
+		printf("Mounted Filesystems: \n");
+		for (int i = 0; i < NMTABLE; i++) 
+			printf("Index: %d\tName: %s\tDevice: %d\tMounted On: %s\n\n", i + 1, mp[i].devName, mp[i].dev, mp[i].mntName);
+		
+		return -1;
+	}
 
 	// 2. Check whether filesys is already mounted: 
 	for (i = 0; i < NMOUNT; i++) {
-
 		if (strcmp(mp[i].devName, filesys) == 0) { // If already mounted, reject;
 			printf("MOUNT FAILED: '%s' ALREADY MOUNTED\n", filesys);
 			return -1;
 		}
-
 	}
 
-	for (i = 0; i < NMOUNT; i++) {
-		if (mp[i].dev == 0) { // allocate a free MOUNT table entry (whose dev=0 means FREE).
-			md = i;
-			break;
-		}
-	}
-
-	dev2 = open_file(filesys, "0");
-
-	if (dev < 0)
+	// 3. open filesys for RW; use its fd number as the new DEV;
+	if ((dev2 = open(filesys, O_RDWR)) < 0) {
 		printf("MOUNT: unable to open %s\n", filesys);
-
+	}
 	// Check whether it's an EXT2 file system: if not, reject.
 	get_block(dev, SUPERBLOCK, buf);  // SUPERBLOCK = 1
 	sp = (SUPER*)buf;
 	if (sp->s_magic != 0xEF53)
 	{
-		printf("ERROR not an EXT2 File Sys!\n");
+		printf("MOUNT ERROR not an EXT2 File Sys!\n");
 		return -1;
 	}
-	printf("passed s_magic\n");
 
 	// 4. For mount_point: find its ino, then get its minode:
 	ino = getino(dev2, mount_point);
@@ -55,13 +49,20 @@ int mount(char* filesys, char* mount_point)    /*  Usage: mount filesys mount_po
 
 	// 5. Check mount_point is a DIR.  
 	if (!S_ISDIR(mip->INODE.i_mode)) {
-		printf("ERROR: mount_point %s is not a DIR\n");
+		printf("MOUNT ERROR: mount_point %s is not a DIR\n");
 		return -1;
 	}
 
 	memset(buf, 0, BLKSIZE);
 
 	// 6. Record new DEV in the MOUNT table entry;
+	for (i = 0; i < NMOUNT; i++) {
+		if (mp[i].dev == 0) { // find a free MOUNT table entry (dev = 0 = FREE).
+			md = i;
+			break;
+		}
+	}
+
 	get_block(dev2, GDBLOCK, buf); // getting GDBLOCK
 	gp = (GD*)buf;
 
